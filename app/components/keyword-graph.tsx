@@ -48,7 +48,7 @@ export function KeywordGraphView({
   return (
     <section
       id="graph"
-      className="mt-8 rounded-[4px] border border-edge bg-panel p-5"
+      className="mt-8 scroll-mt-20 rounded-[4px] border border-edge bg-panel p-5"
     >
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
