@@ -77,21 +77,39 @@ function buildJudgePrompt(
   ].join("\n");
 }
 
-/** Judge the field. Fails soft (null) — callers keep deterministic ranking. */
+/**
+ * Judge the field. Fails soft (null) — callers keep deterministic ranking.
+ * `onRateLimitWait` lets the caller pause out a free-tier throttle window
+ * (and narrate it) instead of silently losing critiques.
+ */
 export async function judgeIdeas(
   input: Pick<GenerateInput, "description" | "vibes" | "appType">,
   ideas: RankedIdea[],
   signals: Map<string, NameSignals>,
+  onRateLimitWait?: () => Promise<boolean>,
 ): Promise<JudgeVerdict[] | null> {
   if (ideas.length < 2) return null;
-  try {
-    const result = await generateObject({
+  const call = () =>
+    generateObject({
       model: ANALYSIS_MODEL,
       schema: judgeSchema,
       prompt: buildJudgePrompt(input, ideas, signals),
       temperature: 0.2,
       maxOutputTokens: 4000,
     });
+  try {
+    let result;
+    try {
+      result = await call();
+    } catch (err) {
+      const rateLimited =
+        err instanceof Error && /rate.?limit|free tier/i.test(err.message);
+      if (rateLimited && onRateLimitWait && (await onRateLimitWait())) {
+        result = await call();
+      } else {
+        throw err;
+      }
+    }
     logUsage("judge", result.usage);
     return result.object.verdicts;
   } catch (err) {

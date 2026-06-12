@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { CheckResponse, DomainResult } from "@/lib/types";
+import { primaryCheckout } from "@/lib/registrars";
 import { StatusBadge } from "./idea-card";
 import { capture } from "./capture";
 
@@ -86,9 +87,9 @@ export function CheckName({ tlds }: { tlds: string[] }) {
                 r.status === "available" ? (
                   <a
                     key={r.domain}
-                    href={`https://porkbun.com/checkout/search?q=${r.domain}`}
+                    href={primaryCheckout(r.domain).href}
                     target="_blank"
-                    rel="noopener noreferrer"
+                    rel="noopener noreferrer sponsored"
                   >
                     <StatusBadge
                       status={r.status}

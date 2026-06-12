@@ -23,7 +23,36 @@ import type {
   RankedIdea,
 } from "@/lib/types";
 
-export const maxDuration = 120;
+export const maxDuration = 300;
+
+const isRateLimit = (e: unknown) =>
+  e instanceof Error && /rate.?limit|free tier/i.test(e.message);
+
+/**
+ * The gateway FREE TIER throttles sequential calls within one run. Quality
+ * beats latency here: announce the pause, wait out the window, retry —
+ * a slow complete run over a fast degraded one. (Paid credits remove the
+ * limit entirely and these waits never trigger.)
+ */
+async function withRateLimitBackoff<T>(
+  fn: () => Promise<T>,
+  send: (e: GenerateEvent) => void,
+  waits: { used: number },
+): Promise<T> {
+  for (;;) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isRateLimit(e) || waits.used >= 3) throw e;
+      waits.used++;
+      send({
+        type: "status",
+        msg: "Free-tier rate limit — pausing ~1 min so quality doesn't suffer…",
+      });
+      await new Promise((r) => setTimeout(r, 65_000));
+    }
+  }
+}
 
 // The generate flow is a closed loop: propose names -> vet (phonetics,
 // brand safety, confusables) -> check availability -> feed taken names back
@@ -50,6 +79,13 @@ const inputSchema = z.object({
     .max(6)
     .optional(),
 });
+
+// Identical briefs (double-submits, shared-URL re-runs) replay the finished
+// run instead of paying for new model calls. Availability ages with the
+// cache, so the TTL stays short and the replay says so.
+const runCache = new Map<string, { at: number; response: GenerateResponse }>();
+const RUN_CACHE_TTL = 60 * 60 * 1000;
+const RUN_CACHE_MAX = 200;
 
 export async function POST(req: Request) {
   const verification = await checkBotId();
@@ -78,6 +114,9 @@ export async function POST(req: Request) {
   input.keywords = input.keywords.filter(Boolean);
   input.vibes = input.vibes.filter(Boolean);
 
+  const cacheKey = JSON.stringify(input);
+  const cached = runCache.get(cacheKey);
+
   // NDJSON stream: once it opens, errors travel as in-stream events.
   const encoder = new TextEncoder();
   const stream = new ReadableStream({
@@ -85,7 +124,25 @@ export async function POST(req: Request) {
       const send = (e: GenerateEvent) =>
         controller.enqueue(encoder.encode(JSON.stringify(e) + "\n"));
       try {
-        await runPipeline(input, send);
+        if (cached && Date.now() - cached.at < RUN_CACHE_TTL) {
+          const mins = Math.max(1, Math.round((Date.now() - cached.at) / 60000));
+          send({
+            type: "status",
+            msg: `Same brief ran ${mins}m ago — replaying that run (availability as of then).`,
+          });
+          send({ type: "graph", graph: cached.response.graph });
+          if (cached.response.tldPricing) {
+            send({ type: "pricing", tldPricing: cached.response.tldPricing });
+          }
+          send({ type: "ideas", ideas: cached.response.ideas });
+          send({ type: "done", response: cached.response });
+          return;
+        }
+        const response = await runPipeline(input, send);
+        if (response) {
+          if (runCache.size >= RUN_CACHE_MAX) runCache.clear();
+          runCache.set(cacheKey, { at: Date.now(), response });
+        }
       } catch (err) {
         console.error("generate pipeline failed", err);
         send({
@@ -108,7 +165,7 @@ export async function POST(req: Request) {
 async function runPipeline(
   input: GenerateInput,
   send: (e: GenerateEvent) => void,
-) {
+): Promise<GenerateResponse | null> {
   // Porkbun's full-catalog call is slow — start it now, await it at the end.
   const pricingPromise = getTldPricing(input.tlds).catch(() => null);
 
@@ -117,6 +174,7 @@ async function runPipeline(
   const all: RankedIdea[] = [];
   const takenNames: string[] = [];
   let runUsd = 0;
+  const waits = { used: 0 };
 
   send({ type: "status", msg: "Mapping the concept space…" });
 
@@ -127,13 +185,19 @@ async function runPipeline(
     let ideas: NameIdea[];
     try {
       if (round === 0) {
-        const result = await generateObject({
-          model: NAMING_MODEL,
-          schema: firstRoundSchema(12, 16),
-          prompt: buildFirstPrompt(input, 14),
-          temperature: 0.9,
-          maxOutputTokens: 6000,
-        });
+        const result = await withRateLimitBackoff(
+          () =>
+            generateObject({
+              model: NAMING_MODEL,
+              schema: firstRoundSchema(12, 16),
+              prompt: buildFirstPrompt(input, 14),
+              temperature: 0.9,
+              maxOutputTokens: 6000,
+              maxRetries: 1, // our backoff outlasts the throttle window
+            }),
+          send,
+          waits,
+        );
         runUsd += logUsage("generate:round0", result.usage);
         graph = result.object.graph;
         ideas = result.object.ideas;
@@ -146,21 +210,27 @@ async function runPipeline(
           type: "status",
           msg: `Round ${round + 1}: ${takenNames.length} names were taken — forging ${count} fresh ones…`,
         });
-        const result = await generateObject({
-          model: NAMING_MODEL,
-          schema: refillSchema(Math.min(6, count), 16),
-          prompt: buildRefillPrompt(
-            input,
-            {
-              graph: graph!,
-              excludeNames: [...seen],
-              reason: "taken",
-            },
-            count,
-          ),
-          temperature: 0.9,
-          maxOutputTokens: 5000,
-        });
+        const result = await withRateLimitBackoff(
+          () =>
+            generateObject({
+              model: NAMING_MODEL,
+              schema: refillSchema(Math.min(6, count), 16),
+              prompt: buildRefillPrompt(
+                input,
+                {
+                  graph: graph!,
+                  excludeNames: [...seen],
+                  reason: "taken",
+                },
+                count,
+              ),
+              temperature: 0.9,
+              maxOutputTokens: 5000,
+              maxRetries: 1,
+            }),
+          send,
+          waits,
+        );
         runUsd += logUsage(`generate:round${round}`, result.usage);
         ideas = result.object.ideas;
       }
@@ -168,7 +238,7 @@ async function runPipeline(
       console.error(`generateObject failed (round ${round})`, err);
       if (round === 0) {
         send({ type: "error", error: modelErrorMessage(err, "Couldn't generate names") });
-        return;
+        return null;
       }
       break; // later rounds: return what we have
     }
@@ -211,7 +281,16 @@ async function runPipeline(
     const signals = await screenNames(field.map((i) => i.name));
 
     send({ type: "status", msg: "Judging the field…" });
-    const verdicts = await judgeIdeas(input, field, signals);
+    const verdicts = await judgeIdeas(input, field, signals, async () => {
+      if (waits.used >= 2) return false;
+      waits.used++;
+      send({
+        type: "status",
+        msg: "Free-tier rate limit — pausing ~35s so quality doesn't suffer…",
+      });
+      await new Promise((r) => setTimeout(r, 35_000));
+      return true;
+    });
     if (verdicts) {
       const byName = new Map(verdicts.map((v) => [v.name, v]));
       for (const idea of field) {
@@ -240,4 +319,5 @@ async function runPipeline(
   };
   send({ type: "done", response });
   console.log(JSON.stringify({ t: "run", estUsd: Number(runUsd.toFixed(5)) }));
+  return response;
 }

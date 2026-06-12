@@ -151,15 +151,16 @@ export async function screenNames(
 
 /** Compact one-line evidence summary for the judge prompt. */
 export function signalSummary(s: NameSignals | undefined): string {
-  if (!s) return "no signals gathered";
+  if (!s) return "no signals";
   const parts: string[] = [];
   if (s.appStore.length)
     parts.push(
       `App Store: ${s.appStore.map((a) => `"${a.name}" by ${a.seller}`).join("; ")}`,
     );
-  if (s.npm) parts.push("npm package exists");
-  if (s.pypi) parts.push("PyPI package exists");
-  if (s.wikipedia) parts.push("Wikipedia article exists");
+  if (s.npm) parts.push("npm pkg");
+  if (s.pypi) parts.push("PyPI pkg");
+  if (s.wikipedia) parts.push("Wikipedia article");
   if (s.meanings.length) parts.push(`known as: ${s.meanings.join(" | ")}`);
-  return parts.length ? parts.join(" · ") : "no collisions found in any source";
+  // "clean" carries the same verdict-relevant information as a sentence.
+  return parts.length ? parts.join(" · ") : "clean";
 }

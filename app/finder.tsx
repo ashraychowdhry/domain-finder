@@ -23,6 +23,7 @@ import {
 } from "./components/shortlist";
 import { CheckName } from "./components/check-name";
 import { capture } from "./components/capture";
+import { deployLink } from "@/lib/registrars";
 
 const APP_TYPES: { value: AppType; label: string }[] = [
   { value: "web", label: "Web" },
@@ -836,8 +837,22 @@ export default function Finder() {
                   &ldquo;Available&rdquo; means registerable at standard price
                   — &ldquo;taken&rdquo; domains may still be parked and listed
                   for sale at a premium. Always confirm at a registrar before
-                  buying.
+                  buying. Registrar links may become affiliate links — your
+                  price never changes.
                 </p>
+                {deployLink() && (
+                  <p className="mt-2 text-center text-xs text-ink-faint">
+                    got your domain? deploy the app behind it →{" "}
+                    <a
+                      href={deployLink()!.href}
+                      target="_blank"
+                      rel="noopener noreferrer sponsored"
+                      className="text-accent-ink underline decoration-accent/40 hover:text-accent-hi"
+                    >
+                      {deployLink()!.name}
+                    </a>
+                  </p>
+                )}
               </section>
             )}
           </div>

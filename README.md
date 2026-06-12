@@ -75,6 +75,14 @@ npm run dev                  # http://localhost:3000
 | — (OIDC) | auto | AI Gateway auth on Vercel; locally via `vercel env pull` |
 | `SERPER_API_KEY` | no | Upgrades the analyze web SERP to Google (serper.dev free tier) |
 | `POSTHOG_KEY` | no | Forwards outcome telemetry to PostHog (free tier) — see `docs/data-strategy.md` |
+| `NEXT_PUBLIC_AFF_SPACESHIP` | no | Impact tracking-link template with `{url}` — wraps the primary checkout link |
+| `NEXT_PUBLIC_AFF_NAMECHEAP` | no | Same, for the Namecheap compare link |
+| `NEXT_PUBLIC_AFF_DYNADOT` | no | Same, for the Dynadot compare link |
+| `NEXT_PUBLIC_DEPLOY_AFF_URL` (+`_LABEL`) | no | Shows a "deploy it" partner link under results (e.g. Railway referral) |
+
+Affiliate templates must be the network's wrapped tracking links (raw query
+params violate program terms). Links work direct until templates are set;
+commissions never change the user's price.
 
 ## Architecture
 

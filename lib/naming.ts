@@ -37,15 +37,16 @@ export const graphSchema = z.object({
         note: z
           .string()
           .describe(
-            "Why this term matters, e.g. 'Latin for light' or 'the feeling after journaling'.",
+            "Why this term matters, ≤6 words, e.g. 'Latin for light'.",
           ),
         connects: z
           .array(z.string())
-          .describe("Other terms in the graph this one relates to."),
+          .max(2)
+          .describe("Up to 2 related terms in the graph."),
       }),
     )
     .min(8)
-    .max(16)
+    .max(12)
     .describe(
       "Keyword graph: core concepts, user benefits, vibe words, metaphors, and Latin/Greek roots to mine for names.",
     ),
@@ -64,7 +65,7 @@ export function ideaListSchema(min: number, max: number) {
         backstory: z
           .string()
           .describe(
-            "The clever, NON-OBVIOUS meaning connecting the name to the product — an etymology, double meaning, or hidden reference. One sentence.",
+            "The clever, NON-OBVIOUS meaning connecting the name to the product — an etymology, double meaning, or hidden reference. One tight sentence, under ~18 words.",
           ),
         style: z
           .enum([
@@ -172,7 +173,7 @@ export function buildFirstPrompt(input: GenerateInput, count: number): string {
     `ALLOWED TLDs: ${input.tlds.join(", ")}`,
     input.avoid ? `AVOID: ${input.avoid}` : "",
     "",
-    "STEP 1 — KEYWORD GRAPH: extract 8-16 nodes — core concepts, concrete user benefits, vibe/aesthetic words, evocative metaphors, and Latin/Greek roots. Connect related nodes. Keep notes to a few words. Range far: adjacent imagery and etymology beat literal feature words.",
+    "STEP 1 — KEYWORD GRAPH: extract 8-12 nodes — core concepts, concrete user benefits, vibe/aesthetic words, evocative metaphors, and Latin/Greek roots. Notes ≤6 words. Range far: adjacent imagery and etymology beat literal feature words.",
     "",
     "STEP 2 — NAMES (each must cite the graph nodes it draws from):",
     HOUSE_STYLE,
@@ -182,7 +183,7 @@ export function buildFirstPrompt(input: GenerateInput, count: number): string {
     "- Prefer names unlikely to collide with large existing companies/apps — a name owned by a big startup buries a newcomer in search.",
     "- Vary styles across the set. Pick preferredTld from the allowed list per name.",
     "",
-    `Return the graph and ${count} diverse candidates. Keep backstories to one sentence.`,
+    `Return the graph and ${count} diverse candidates. Backstories: one tight sentence each, under ~18 words.`,
   ]
     .filter(Boolean)
     .join("\n");
@@ -235,7 +236,7 @@ export function buildRefillPrompt(
     vibePhonetics(input.vibes) ?? "",
     stylePrefLine(input.stylePrefs) ?? "",
     "",
-    `Return ${count} new candidates. One-sentence backstories. Honest sourceNodes per name.`,
+    `Return ${count} new candidates. Backstories one tight sentence (<~18 words). Honest sourceNodes per name.`,
   ]
     .filter(Boolean)
     .join("\n");

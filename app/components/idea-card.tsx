@@ -9,6 +9,7 @@ import type {
   RankedIdea,
   TldPrice,
 } from "@/lib/types";
+import { compareLinks, primaryCheckout } from "@/lib/registrars";
 import { capture } from "./capture";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: "500" });
@@ -335,9 +336,9 @@ export function IdeaCard({
         {available.map((d) => (
           <a
             key={d.domain}
-            href={`https://porkbun.com/checkout/search?q=${d.domain}`}
+            href={primaryCheckout(d.domain).href}
             target="_blank"
-            rel="noopener noreferrer"
+            rel="noopener noreferrer sponsored"
             onClick={() =>
               capture("idea_registrar_click", {
                 domain: d.domain,
@@ -378,15 +379,20 @@ export function IdeaCard({
         {idea.bestAvailable && (
           <span>
             compare:{" "}
-            <a
-              className="underline decoration-edge hover:text-ink-dim"
-              target="_blank"
-              rel="noopener noreferrer"
-              href={`https://www.namecheap.com/domains/registration/results/?domain=${idea.bestAvailable}`}
-            >
-              Namecheap
-            </a>{" "}
-            ·{" "}
+            {compareLinks(idea.bestAvailable).map((l, i) => (
+              <span key={l.name}>
+                {i > 0 && " · "}
+                <a
+                  className="underline decoration-edge hover:text-ink-dim"
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  href={l.href}
+                >
+                  {l.name}
+                </a>
+              </span>
+            ))}
+            {" · "}
             <a
               className="underline decoration-edge hover:text-ink-dim"
               target="_blank"
