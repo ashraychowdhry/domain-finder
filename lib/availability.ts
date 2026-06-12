@@ -18,7 +18,7 @@
 import type { AvailabilityStatus, DomainResult } from "./types";
 
 const DOH_BASE = "https://dns.google/resolve";
-const UA = "NameForge/1.0 (domain availability checker)";
+const UA = "Vocari/1.0 (domain availability checker)";
 
 // Registry RDAP bases per TLD, verified live (200 for registered,
 // 404 for unregistered).

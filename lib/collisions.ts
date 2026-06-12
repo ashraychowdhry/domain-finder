@@ -110,7 +110,7 @@ async function searchWikipedia(name: string): Promise<string[]> {
         headers: {
           Accept: "application/json",
           // Wikimedia API etiquette asks for a descriptive UA.
-          "User-Agent": "NameForge/1.0 (domain name research tool)",
+          "User-Agent": "Vocari/1.0 (domain name research tool)",
         },
       },
     );

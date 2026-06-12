@@ -104,7 +104,7 @@ async function wikipediaExact(names: string[]): Promise<Set<string>> {
       `https://en.wikipedia.org/w/api.php?action=query&format=json&redirects=1&titles=${encodeURIComponent(titles)}`,
       {
         headers: {
-          "User-Agent": "NameForge/1.0 (domain name research tool)",
+          "User-Agent": "Vocari/1.0 (domain name research tool)",
         },
       },
     );

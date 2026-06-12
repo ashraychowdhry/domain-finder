@@ -1,4 +1,4 @@
-# NameForge data strategy — building proprietary value over time
+# Vocari data strategy — building proprietary value over time
 
 The naming engine is stateless today: every run rediscovers the world from
 scratch. The durable moat is the **data exhaust** each run produces — what was

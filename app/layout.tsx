@@ -8,7 +8,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "NameForge — find a clean, available domain for your idea",
+  title: "Vocari — find a clean, available domain for your idea",
   description:
     "Describe your app idea and get clever, available domain names with a backstory — checked live for availability, with on-demand SEO and collision analysis.",
 };

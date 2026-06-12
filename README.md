@@ -1,4 +1,4 @@
-# NameForge
+# Vocari
 
 Describe your app idea → get clean, **available** domain names with clever
 non-obvious backstories — vetted live against registries, the App Store, npm,

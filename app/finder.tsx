@@ -451,7 +451,7 @@ export default function Finder() {
         <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
           <a href="#brief" className="flex items-baseline gap-2">
             <span className="text-base font-bold tracking-tight">
-              name<span className="text-accent-ink">forge</span>
+              voc<span className="text-accent-ink">ari</span>
             </span>
             <span className="hidden rounded-[3px] border border-edge bg-chip px-1.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-ink-faint sm:inline">
               v2.0-stable
