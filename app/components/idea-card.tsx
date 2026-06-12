@@ -36,10 +36,10 @@ export function StatusBadge({
 }) {
   const styles =
     status === "available"
-      ? "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 ring-emerald-500/30"
+      ? "text-ok border-ok/40 bg-well"
       : status === "taken"
-        ? "bg-black/5 text-black/40 dark:bg-white/5 dark:text-white/35 ring-transparent"
-        : "bg-amber-500/15 text-amber-700 dark:text-amber-400 ring-amber-500/30";
+        ? "text-ink-faint border-edge-soft bg-well"
+        : "text-warn border-warn/40 bg-well";
   const statusText =
     status === "available"
       ? source === "rdap"
@@ -52,7 +52,7 @@ export function StatusBadge({
         : "couldn't verify";
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-md px-2 py-0.5 font-mono text-xs ring-1 ring-inset ${styles}`}
+      className={`inline-flex items-center gap-1.5 rounded-[3px] border px-2 py-0.5 text-xs ${styles}`}
       title={statusText}
       aria-label={`${domain} — ${statusText}`}
     >
@@ -61,9 +61,7 @@ export function StatusBadge({
         <span className="text-[10px] opacity-70">${Math.round(price.reg)}/yr</span>
       )}
       {status === "taken" && parked && (
-        <span className="text-[10px] text-amber-600 no-underline dark:text-amber-400">
-          for sale
-        </span>
+        <span className="text-[10px] text-warn no-underline">for sale</span>
       )}
     </span>
   );
@@ -74,22 +72,16 @@ function RiskChip({ idea }: { idea: RankedIdea }) {
   const r = idea.collisionRisk;
   const [cls, label] =
     r <= 25
-      ? [
-          "bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 ring-emerald-500/30",
-          "clear field",
-        ]
+      ? ["text-ok border-ok/40", "clear field"]
       : r <= 55
-        ? [
-            "bg-amber-500/15 text-amber-700 dark:text-amber-400 ring-amber-500/30",
-            "some noise",
-          ]
+        ? ["text-warn border-warn/40", "some noise"]
         : [
-            "bg-red-500/15 text-red-700 dark:text-red-400 ring-red-500/30",
+            "text-bad border-bad/40",
             idea.topCollision ? `collides: ${idea.topCollision}` : "crowded",
           ];
   return (
     <span
-      className={`inline-flex items-center rounded-full px-2 py-0.5 text-xs ring-1 ring-inset ${cls}`}
+      className={`inline-flex items-center rounded-[3px] border bg-well px-2 py-0.5 text-xs ${cls}`}
       title={`Collision risk ${r}/100${idea.topCollision ? ` — worst: ${idea.topCollision}` : ""} (screened against App Store, npm, PyPI, Wikipedia)`}
     >
       {label}
@@ -144,12 +136,12 @@ function AnalyzePanel({
         <button
           onClick={run}
           disabled={loading || !target}
-          className="text-sm font-medium text-indigo-600 hover:underline disabled:opacity-50 dark:text-indigo-400"
+          className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-ink transition hover:text-accent-hi disabled:opacity-50"
         >
-          {loading ? "Analyzing competition…" : "Deep-dive SEO & competitors →"}
+          {loading ? "Analyzing competition…" : "▸ Deep-dive SEO & competitors"}
         </button>
         {err && (
-          <p role="alert" className="mt-1 text-sm text-red-600">
+          <p role="alert" className="mt-1 text-sm text-bad">
             {err}
           </p>
         )}
@@ -158,50 +150,43 @@ function AnalyzePanel({
   }
 
   const scoreColor =
-    data.seoScore >= 70
-      ? "text-emerald-600 dark:text-emerald-400"
-      : data.seoScore >= 40
-        ? "text-amber-600 dark:text-amber-400"
-        : "text-red-600 dark:text-red-400";
+    data.seoScore >= 70 ? "text-ok" : data.seoScore >= 40 ? "text-warn" : "text-bad";
 
   return (
-    <div className="mt-3 rounded-lg border border-black/10 bg-black/[0.02] p-3 text-sm dark:border-white/10 dark:bg-white/[0.03]">
+    <div className="mt-3 rounded-[3px] border border-edge-soft bg-well p-3 text-sm">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-medium">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.15em] text-ink-dim">
           SEO / field clarity:{" "}
           <span className={scoreColor}>{data.seoScore}/100</span>
         </span>
         {!data.usedLiveSearch && (
-          <span className="text-xs text-black/40 dark:text-white/40">
+          <span className="text-[10px] uppercase tracking-wide text-ink-faint">
             model estimate
           </span>
         )}
       </div>
-      <p className="mt-1 text-black/70 dark:text-white/70">{data.verdict}</p>
+      <p className="mt-1 text-ink-dim">{data.verdict}</p>
 
       {data.collisions.length > 0 && (
         <div className="mt-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-black/45 dark:text-white/45">
+          <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ink-faint">
             Name collisions
           </p>
           <ul className="mt-1 space-y-1">
             {data.collisions.map((c, i) => (
               <li key={i} className="flex gap-2">
                 <span
-                  className={`mt-1 h-2 w-2 shrink-0 rounded-full ${
+                  className={`mt-1.5 h-1.5 w-1.5 shrink-0 ${
                     c.severity === "high"
-                      ? "bg-red-500"
+                      ? "bg-bad"
                       : c.severity === "medium"
-                        ? "bg-amber-500"
-                        : "bg-black/20 dark:bg-white/25"
+                        ? "bg-warn"
+                        : "bg-ink-faint"
                   }`}
                 />
-                <span>
-                  <strong>{c.name}</strong>{" "}
-                  <span className="text-black/45 dark:text-white/45">
-                    ({c.kind})
-                  </span>{" "}
-                  — {c.note}
+                <span className="text-ink-dim">
+                  <strong className="text-ink">{c.name}</strong>{" "}
+                  <span className="text-ink-faint">({c.kind})</span> — {c.note}
                 </span>
               </li>
             ))}
@@ -212,24 +197,24 @@ function AnalyzePanel({
       <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2">
         {data.pros.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700 dark:text-emerald-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-ok">
               Pros
             </p>
-            <ul className="mt-1 list-disc pl-4 text-black/70 dark:text-white/70">
+            <ul className="mt-1 space-y-0.5 text-ink-dim">
               {data.pros.map((p, i) => (
-                <li key={i}>{p}</li>
+                <li key={i}>+ {p}</li>
               ))}
             </ul>
           </div>
         )}
         {data.cons.length > 0 && (
           <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-red-700 dark:text-red-400">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-bad">
               Cons
             </p>
-            <ul className="mt-1 list-disc pl-4 text-black/70 dark:text-white/70">
+            <ul className="mt-1 space-y-0.5 text-ink-dim">
               {data.cons.map((c, i) => (
-                <li key={i}>{c}</li>
+                <li key={i}>- {c}</li>
               ))}
             </ul>
           </div>
@@ -237,17 +222,15 @@ function AnalyzePanel({
       </div>
 
       {data.trademarkNote && (
-        <p className="mt-2 text-xs text-amber-700 dark:text-amber-400">
-          ™ {data.trademarkNote}
-        </p>
+        <p className="mt-2 text-xs text-warn">™ {data.trademarkNote}</p>
       )}
-      <p className="mt-2 text-xs text-black/40 dark:text-white/40">
+      <p className="mt-2 text-xs text-ink-faint">
         Not trademark clearance —{" "}
         <a
           href={`https://tmsearch.uspto.gov/search/search-results/${encodeURIComponent(idea.name)}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="underline"
+          className="text-accent-ink underline decoration-accent/40 hover:text-accent-hi"
         >
           check USPTO
         </a>{" "}
@@ -284,20 +267,22 @@ export function IdeaCard({
     hasCom ? ".com available" : available.length ? `${available.length} TLDs available` : null,
     `${idea.name.length} letters`,
     idea.judgeRank ? `judged #${idea.judgeRank}` : null,
-    idea.collisionRisk !== undefined ? `field clarity ${100 - idea.collisionRisk}/100` : null,
+    idea.collisionRisk !== undefined ? `field ${100 - idea.collisionRisk}/100` : null,
   ].filter(Boolean);
 
   return (
-    <li className="rounded-xl border border-black/10 bg-white p-4 shadow-sm dark:border-white/10 dark:bg-white/[0.04]">
+    <li className="rounded-[4px] border border-edge bg-panel p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {rank === 1 && (
-            <span className="rounded-full bg-indigo-600 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+            <span className="rounded-[3px] bg-accent px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.15em] text-white">
               Top pick
             </span>
           )}
-          <h3 className="text-lg font-semibold">{idea.name}</h3>
-          <span className="rounded-full bg-black/5 px-2 py-0.5 text-xs text-black/55 dark:bg-white/10 dark:text-white/55">
+          <h3 className="text-lg font-bold tracking-tight text-ink">
+            {idea.name}
+          </h3>
+          <span className="rounded-[3px] border border-edge bg-chip px-2 py-0.5 text-xs text-ink-dim">
             {idea.style}
           </span>
           <RiskChip idea={idea} />
@@ -310,14 +295,14 @@ export function IdeaCard({
           }}
           aria-pressed={starred}
           aria-label={starred ? `Remove ${idea.name} from shortlist` : `Shortlist ${idea.name}`}
-          className={`text-lg leading-none transition ${starred ? "text-amber-500" : "text-black/25 hover:text-amber-500 dark:text-white/25"}`}
+          className={`text-lg leading-none transition ${starred ? "text-warn" : "text-ink-faint hover:text-warn"}`}
         >
           ★
         </button>
       </div>
 
       {/* Wordmark previews — evaluating a brand, not a string. */}
-      <div className="mt-2 flex flex-wrap items-baseline gap-4 text-black/80 dark:text-white/85">
+      <div className="mt-3 flex flex-wrap items-baseline gap-x-6 gap-y-1 rounded-[3px] border border-edge-soft bg-well px-3 py-2 text-ink">
         <span className={`${spaceGrotesk.className} text-xl tracking-tight`}>
           {idea.name}
         </span>
@@ -325,22 +310,21 @@ export function IdeaCard({
         <span className={`${quicksand.className} text-xl`}>{idea.name}</span>
       </div>
 
-      <p className="mt-2 text-sm text-black/65 dark:text-white/65">
-        {idea.backstory}
-      </p>
+      <p className="mt-3 text-sm text-ink-dim">{idea.backstory}</p>
       {idea.critique && (
-        <p className="mt-1 text-sm italic text-black/50 dark:text-white/50">
-          Judge: {idea.critique}
+        <p className="mt-1 text-sm text-ink-faint">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.15em]">
+            judge:
+          </span>{" "}
+          {idea.critique}
         </p>
       )}
-      {via && (
-        <p className="mt-1 text-xs text-indigo-600 dark:text-indigo-400">{via}</p>
-      )}
+      {via && <p className="mt-1 text-xs text-accent-ink">{via}</p>}
 
       {idea.flags.length > 0 && (
         <ul className="mt-2 space-y-0.5">
           {idea.flags.map((f, i) => (
-            <li key={i} className="text-xs text-amber-700 dark:text-amber-400">
+            <li key={i} className="text-xs text-warn">
               ⚠ {f}
             </li>
           ))}
@@ -381,23 +365,21 @@ export function IdeaCard({
         ))}
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-black/45 dark:text-white/45">
+      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-faint">
         <span>{whyParts.join(" · ")}</span>
-        <span className="text-black/30 dark:text-white/30">
-          mined from: {idea.sourceNodes.join(", ")}
-        </span>
+        <span className="opacity-70">mined from: {idea.sourceNodes.join(", ")}</span>
         <button
           type="button"
           onClick={onMoreLikeThis}
-          className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
+          className="font-semibold uppercase tracking-[0.12em] text-accent-ink transition hover:text-accent-hi"
         >
-          More like this →
+          More like this ▸
         </button>
         {idea.bestAvailable && (
           <span>
             compare:{" "}
             <a
-              className="underline"
+              className="underline decoration-edge hover:text-ink-dim"
               target="_blank"
               rel="noopener noreferrer"
               href={`https://www.namecheap.com/domains/registration/results/?domain=${idea.bestAvailable}`}
@@ -406,7 +388,7 @@ export function IdeaCard({
             </a>{" "}
             ·{" "}
             <a
-              className="underline"
+              className="underline decoration-edge hover:text-ink-dim"
               target="_blank"
               rel="noopener noreferrer"
               href="https://domains.cloudflare.com/"

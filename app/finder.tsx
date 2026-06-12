@@ -47,6 +47,42 @@ const STYLE_OPTIONS: { value: NamingStyle; label: string }[] = [
 
 type DisplayIdea = RankedIdea & { via?: string };
 
+/** Workbench toggle button — shared look for all selectable controls. */
+function toggleCls(selected: boolean): string {
+  return `rounded-[3px] border px-3 py-1.5 text-sm transition ${
+    selected
+      ? "border-accent bg-accent/10 text-ink"
+      : "border-edge bg-well text-ink-dim hover:border-ink-faint hover:text-ink"
+  }`;
+}
+
+/** Uppercase section label with the workbench's violet required marker. */
+function FieldLabel({
+  children,
+  required,
+  hint,
+}: {
+  children: React.ReactNode;
+  required?: boolean;
+  hint?: string;
+}) {
+  return (
+    <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
+      {required && (
+        <span aria-hidden="true" className="mr-1 text-accent-ink">
+          *
+        </span>
+      )}
+      {children}
+      {hint && (
+        <span className="ml-2 normal-case tracking-normal text-ink-faint">
+          — {hint}
+        </span>
+      )}
+    </span>
+  );
+}
+
 /** Lightweight tag input: type + Enter (or comma) to add chips. */
 function TagInput({
   label,
@@ -70,18 +106,18 @@ function TagInput({
   };
   return (
     <label className="block">
-      <span className="text-sm font-medium">{label}</span>
-      <div className="mt-1.5 flex flex-wrap gap-1.5 rounded-lg border border-black/10 bg-white/60 p-2 focus-within:border-black/30 dark:border-white/15 dark:bg-white/5">
+      <FieldLabel>{label}</FieldLabel>
+      <div className="mt-1.5 flex flex-wrap gap-1.5 rounded-[3px] border border-edge bg-well p-2 focus-within:border-accent">
         {tags.map((t) => (
           <span
             key={t}
-            className="inline-flex items-center gap-1 rounded-md bg-black/5 px-2 py-0.5 text-sm dark:bg-white/10"
+            className="inline-flex items-center gap-1.5 rounded-[3px] border border-edge bg-chip px-2 py-0.5 text-sm text-ink"
           >
             {t}
             <button
               type="button"
               onClick={() => setTags(tags.filter((x) => x !== t))}
-              className="text-black/40 hover:text-black dark:text-white/40 dark:hover:text-white"
+              className="text-ink-faint transition hover:text-ink"
               aria-label={`Remove ${t}`}
             >
               ×
@@ -101,7 +137,7 @@ function TagInput({
           }}
           onBlur={() => draft && commit(draft)}
           placeholder={tags.length ? "" : placeholder}
-          className="min-w-[8rem] flex-1 bg-transparent text-sm outline-none"
+          className="min-w-[8rem] flex-1 bg-transparent text-sm text-ink outline-none placeholder:text-ink-faint"
         />
       </div>
     </label>
@@ -156,6 +192,7 @@ export default function Finder() {
   const [styleFilter, setStyleFilter] = useState<Set<NamingStyle>>(new Set());
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
   const [formPricing, setFormPricing] = useState<Record<string, TldPrice>>({});
+  const [linkCopied, setLinkCopied] = useState(false);
 
   // The form state at the moment of the last run (refine must match it).
   const runBrief = useRef<Brief | null>(null);
@@ -214,7 +251,6 @@ export default function Finder() {
         setGraphSelected(new Set());
         break;
       case "round":
-        setTakenNames((cur) => cur); // counts arrive via status lines
         break;
       case "ideas":
         setIdeas(e.ideas);
@@ -380,351 +416,433 @@ export default function Finder() {
     );
   };
 
+  const copyShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 1500);
+    } catch {
+      // clipboard unavailable
+    }
+  };
+
   const visibleIdeas = styleFilter.size
     ? ideas.filter((i) => styleFilter.has(i.style))
     : ideas;
   const usedStyles = [...new Set(ideas.map((i) => i.style))];
+  const status = loading
+    ? ["FORGING", "text-accent-ink"]
+    : error
+      ? ["ERROR", "text-bad"]
+      : ["READY", "text-ok"];
+  const descLines = description.split("\n").length;
+
+  const navItems: { label: string; href: string; active: boolean }[] = [
+    { label: "Brief", href: "#brief", active: true },
+    { label: "Keyword graph", href: "#graph", active: Boolean(graph) },
+    { label: "Results", href: "#results", active: ideas.length > 0 },
+    { label: "Shortlist", href: "#shortlist", active: shortlist.length > 0 },
+  ];
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:py-16">
-      <header className="text-center">
-        <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-          NameForge
-        </h1>
-        <p className="mx-auto mt-2 max-w-xl text-black/60 dark:text-white/60">
-          Describe your idea. Get clean, available domains — each with a clever
-          backstory — vetted live against registries, the App Store, npm &
-          the open web.
-        </p>
+    <div className="flex min-h-screen flex-col bg-bg text-ink">
+      {/* ── Top bar ─────────────────────────────────────────────────── */}
+      <header className="sticky top-0 z-30 border-b border-edge bg-panel/90 backdrop-blur">
+        <div className="flex h-14 items-center gap-4 px-4 sm:px-6">
+          <a href="#brief" className="flex items-baseline gap-2">
+            <span className="text-base font-bold tracking-tight">
+              name<span className="text-accent-ink">forge</span>
+            </span>
+            <span className="hidden rounded-[3px] border border-edge bg-chip px-1.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-ink-faint sm:inline">
+              v2.0-stable
+            </span>
+          </a>
+          <span
+            className={`hidden items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] sm:flex ${status[1]}`}
+          >
+            ● {status[0]}
+          </span>
+          <div className="ml-auto">
+            <CheckName tlds={tlds} />
+          </div>
+        </div>
       </header>
 
-      <CheckName tlds={tlds} />
-
-      <ShortlistPanel
-        list={shortlist}
-        onUpdate={updateShortlist}
-        onRemove={(domain) =>
-          updateShortlist(shortlist.filter((e) => e.domain !== domain))
-        }
-      />
-
-      <form
-        onSubmit={submit}
-        className="mt-8 space-y-4 rounded-2xl border border-black/10 bg-white/70 p-5 shadow-sm backdrop-blur dark:border-white/10 dark:bg-white/[0.04] sm:p-6"
-      >
-        <label className="block">
-          <span className="text-sm font-medium">
-            What are you building?{" "}
-            <span aria-hidden="true" className="text-red-500">
-              *
-            </span>
-          </span>
-          <textarea
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            required
-            aria-required="true"
-            rows={3}
-            placeholder="A calm, AI-powered journaling app that turns your daily notes into gentle weekly reflections."
-            className="mt-1.5 w-full resize-y rounded-lg border border-black/10 bg-white/60 p-3 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:bg-white/5"
-          />
-        </label>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <TagInput
-            label="Keywords"
-            placeholder="journal, calm, reflect"
-            tags={keywords}
-            setTags={setKeywords}
-          />
-          <TagInput
-            label="Vibes / aesthetic"
-            placeholder="minimal, warm, premium"
-            tags={vibes}
-            setTags={setVibes}
-          />
-        </div>
-
-        <div>
-          <span id="styles-label" className="text-sm font-medium">
-            Naming style{" "}
-            <span className="text-black/40 dark:text-white/40">
-              (optional — empty = surprise me)
-            </span>
-          </span>
-          <div
-            role="group"
-            aria-labelledby="styles-label"
-            className="mt-1.5 flex flex-wrap gap-1.5"
-          >
-            {STYLE_OPTIONS.map((s) => (
-              <button
-                key={s.value}
-                type="button"
-                onClick={() => toggleStyle(s.value)}
-                aria-pressed={stylePrefs.includes(s.value)}
-                className={`rounded-lg px-3 py-1.5 text-sm ring-1 ring-inset transition ${
-                  stylePrefs.includes(s.value)
-                    ? "bg-indigo-600 text-white ring-indigo-600"
-                    : "bg-transparent ring-black/10 hover:bg-black/5 dark:ring-white/15 dark:hover:bg-white/5"
+      <div className="flex flex-1">
+        {/* ── Sidebar ──────────────────────────────────────────────── */}
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-56 shrink-0 flex-col border-r border-edge bg-panel/50 p-4 lg:flex">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink">
+            Workbench
+          </p>
+          <p className="mt-0.5 text-[10px] uppercase tracking-[0.15em] text-ink-faint">
+            naming engine
+          </p>
+          <nav className="mt-5 space-y-1">
+            {navItems.map((item) => (
+              <a
+                key={item.href}
+                href={item.active ? item.href : undefined}
+                aria-disabled={!item.active}
+                className={`block rounded-[3px] px-2 py-1.5 text-sm transition ${
+                  item.active
+                    ? "text-ink-dim hover:bg-chip hover:text-ink"
+                    : "cursor-default text-ink-faint/60"
                 }`}
               >
-                {s.label}
-              </button>
+                <span className="mr-2 text-accent-ink">›</span>
+                {item.label}
+              </a>
             ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <span id="app-type-label" className="text-sm font-medium">
-              App type
-            </span>
-            <div
-              role="group"
-              aria-labelledby="app-type-label"
-              className="mt-1.5 flex gap-1.5"
+          </nav>
+          <div className="mt-auto space-y-2">
+            <button
+              type="button"
+              onClick={copyShareLink}
+              className="w-full rounded-[3px] border border-edge bg-well px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-dim transition hover:border-ink-faint hover:text-ink"
             >
-              {APP_TYPES.map((t) => (
-                <button
-                  key={t.value}
-                  type="button"
-                  onClick={() => setAppType(t.value)}
-                  aria-pressed={appType === t.value}
-                  className={`rounded-lg px-3 py-1.5 text-sm ring-1 ring-inset transition ${
-                    appType === t.value
-                      ? "bg-indigo-600 text-white ring-indigo-600"
-                      : "bg-transparent ring-black/10 hover:bg-black/5 dark:ring-white/15 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          <div>
-            <span id="platforms-label" className="text-sm font-medium">
-              Platforms
-            </span>
-            <div
-              role="group"
-              aria-labelledby="platforms-label"
-              className="mt-1.5 flex gap-1.5"
-            >
-              {PLATFORMS.map((p) => (
-                <button
-                  key={p.value}
-                  type="button"
-                  onClick={() => togglePlatform(p.value)}
-                  aria-pressed={platforms.includes(p.value)}
-                  className={`rounded-lg px-3 py-1.5 text-sm ring-1 ring-inset transition ${
-                    platforms.includes(p.value)
-                      ? "bg-indigo-600 text-white ring-indigo-600"
-                      : "bg-transparent ring-black/10 hover:bg-black/5 dark:ring-white/15 dark:hover:bg-white/5"
-                  }`}
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div>
-          <span id="tlds-label" className="text-sm font-medium">
-            Domain extensions
-          </span>
-          <div
-            role="group"
-            aria-labelledby="tlds-label"
-            className="mt-1.5 flex flex-wrap gap-1.5"
-          >
-            {DEFAULT_TLDS.map((t) => {
-              const price = formPricing[t];
-              const priceNote = price
-                ? ` · ~$${Math.round(price.reg)}/yr${price.renew > price.reg * 1.8 ? ` (renews $${Math.round(price.renew)})` : ""}`
-                : "";
-              return (
-                <button
-                  key={t}
-                  type="button"
-                  onClick={() => toggleTld(t)}
-                  title={`${TLD_NOTES[t] ?? ""}${priceNote}`}
-                  aria-pressed={tlds.includes(t)}
-                  className={`rounded-lg px-2.5 py-1 font-mono text-sm ring-1 ring-inset transition ${
-                    tlds.includes(t)
-                      ? "bg-black text-white ring-black dark:bg-white dark:text-black dark:ring-white"
-                      : "bg-transparent ring-black/10 hover:bg-black/5 dark:ring-white/15 dark:hover:bg-white/5"
-                  }`}
-                >
-                  .{t}
-                  {price && (
-                    <span className="ml-1 text-[10px] opacity-60">
-                      ${Math.round(price.reg)}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <label className="block">
-          <span className="text-sm font-medium">
-            Anything to avoid{" "}
-            <span className="text-black/40 dark:text-white/40">(optional)</span>
-          </span>
-          <input
-            value={avoid}
-            onChange={(e) => setAvoid(e.target.value)}
-            placeholder="no -ly / -ify names, nothing that sounds corporate"
-            className="mt-1.5 w-full rounded-lg border border-black/10 bg-white/60 p-2.5 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:bg-white/5"
-          />
-        </label>
-
-        {error && (
-          <p role="alert" className="text-sm text-red-600">
-            {error}
-          </p>
-        )}
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full rounded-xl bg-indigo-600 py-3 font-semibold text-white transition hover:bg-indigo-500 disabled:opacity-60"
-        >
-          {loading ? "Forging names…" : "Find my domain"}
-        </button>
-      </form>
-
-      {(loading || (timeline.length > 0 && !done)) && (
-        <div
-          role="status"
-          className="mt-8 space-y-1 rounded-xl border border-black/10 bg-white/50 p-4 text-sm dark:border-white/10 dark:bg-white/[0.03]"
-        >
-          {timeline.map((msg, i) => (
-            <p
-              key={i}
-              className={
-                i === timeline.length - 1 && loading
-                  ? "animate-pulse text-black/70 dark:text-white/70"
-                  : "text-black/40 dark:text-white/40"
-              }
-            >
-              {i === timeline.length - 1 && loading ? "● " : "✓ "}
-              {msg}
+              {linkCopied ? "Copied ✓" : "Copy share link"}
+            </button>
+            <p className="text-[10px] leading-relaxed text-ink-faint">
+              The URL encodes your brief — share it with a cofounder.
             </p>
-          ))}
-        </div>
-      )}
+          </div>
+        </aside>
 
-      {graph && (
-        <KeywordGraphView
-          graph={graph}
-          selected={graphSelected}
-          onToggle={(term) =>
-            setGraphSelected((cur) => {
-              const next = new Set(cur);
-              if (next.has(term)) next.delete(term);
-              else next.add(term);
-              return next;
-            })
-          }
-          onAddTerm={(term) => {
-            setGraph((g) =>
-              g && !g.nodes.some((n) => n.term === term)
-                ? {
-                    nodes: [
-                      ...g.nodes,
-                      { term, kind: "core", note: "added by you", connects: [] },
-                    ],
-                  }
-                : g,
-            );
-            setGraphSelected((cur) => new Set([...cur, term]));
-          }}
-          onForge={() =>
-            refine({
-              focusTerms: [...graphSelected],
-              via: `forged from: ${[...graphSelected].join(" + ")}`,
-            })
-          }
-          forging={refining}
-        />
-      )}
+        {/* ── Main ─────────────────────────────────────────────────── */}
+        <main className="min-w-0 flex-1">
+          <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
+            <header>
+              <h1 className="text-2xl font-bold tracking-tight">
+                Find a name worth building on
+              </h1>
+              <p className="mt-1.5 max-w-xl text-sm text-ink-dim">
+                Clean, available domains with clever backstories — vetted live
+                against registries, the App Store, npm & the open web.
+              </p>
+            </header>
 
-      {ideas.length > 0 && (
-        <section className="mt-8">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-              {visibleIdeas.length} ideas
-              {ideas.some((i) => i.bestAvailable)
-                ? " · each has an available domain"
-                : " · none came back available — try more extensions"}
-              {!done && loading ? " · still working…" : ""}
-            </h2>
-            {usedStyles.length > 1 && (
-              <div className="flex flex-wrap gap-1">
-                {usedStyles.map((s) => (
-                  <button
-                    key={s}
-                    type="button"
-                    aria-pressed={styleFilter.has(s)}
-                    onClick={() =>
-                      setStyleFilter((cur) => {
-                        const next = new Set(cur);
-                        if (next.has(s)) next.delete(s);
-                        else next.add(s);
-                        return next;
-                      })
-                    }
-                    className={`rounded-full px-2 py-0.5 text-xs ring-1 ring-inset transition ${
-                      styleFilter.has(s)
-                        ? "bg-black text-white ring-black dark:bg-white dark:text-black"
-                        : "ring-black/15 text-black/50 dark:ring-white/20 dark:text-white/50"
-                    }`}
+            <ShortlistPanel
+              list={shortlist}
+              onUpdate={updateShortlist}
+              onRemove={(domain) =>
+                updateShortlist(shortlist.filter((e) => e.domain !== domain))
+              }
+            />
+
+            <form
+              id="brief"
+              onSubmit={submit}
+              className="mt-8 scroll-mt-20 space-y-5 rounded-[4px] border border-edge bg-panel p-5 sm:p-6"
+            >
+              <label className="block">
+                <FieldLabel required>What are you building?</FieldLabel>
+                <div className="relative mt-1.5">
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    required
+                    aria-required="true"
+                    rows={4}
+                    placeholder="A calm, AI-powered journaling app that turns your daily notes into gentle weekly reflections."
+                    className="w-full resize-y rounded-[3px] border border-edge bg-well p-3 pb-7 text-sm leading-relaxed text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+                  />
+                  <div className="pointer-events-none absolute bottom-2.5 right-2 flex gap-1">
+                    <span className="rounded-[2px] border border-edge-soft bg-chip px-1.5 py-px text-[9px] uppercase tracking-wider text-ink-faint">
+                      ln: {descLines}
+                    </span>
+                    <span className="rounded-[2px] border border-edge-soft bg-chip px-1.5 py-px text-[9px] uppercase tracking-wider text-ink-faint">
+                      utf-8
+                    </span>
+                  </div>
+                </div>
+              </label>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <TagInput
+                  label="Keywords"
+                  placeholder="journal, calm, reflect"
+                  tags={keywords}
+                  setTags={setKeywords}
+                />
+                <TagInput
+                  label="Vibes / aesthetic"
+                  placeholder="minimal, warm, premium"
+                  tags={vibes}
+                  setTags={setVibes}
+                />
+              </div>
+
+              <div className="rounded-[3px] border border-edge-soft bg-well/50 p-4">
+                <span id="styles-label">
+                  <FieldLabel hint="optional, empty = surprise me">
+                    Naming style
+                  </FieldLabel>
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby="styles-label"
+                  className="mt-2 flex flex-wrap gap-1.5"
+                >
+                  {STYLE_OPTIONS.map((s) => (
+                    <button
+                      key={s.value}
+                      type="button"
+                      onClick={() => toggleStyle(s.value)}
+                      aria-pressed={stylePrefs.includes(s.value)}
+                      className={toggleCls(stylePrefs.includes(s.value))}
+                    >
+                      {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div>
+                  <span id="app-type-label">
+                    <FieldLabel>App type</FieldLabel>
+                  </span>
+                  <div
+                    role="group"
+                    aria-labelledby="app-type-label"
+                    className="mt-1.5 flex gap-1.5"
                   >
-                    {s}
-                  </button>
-                ))}
+                    {APP_TYPES.map((t) => (
+                      <button
+                        key={t.value}
+                        type="button"
+                        onClick={() => setAppType(t.value)}
+                        aria-pressed={appType === t.value}
+                        className={toggleCls(appType === t.value)}
+                      >
+                        {t.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                <div>
+                  <span id="platforms-label">
+                    <FieldLabel>Platforms</FieldLabel>
+                  </span>
+                  <div
+                    role="group"
+                    aria-labelledby="platforms-label"
+                    className="mt-1.5 flex gap-1.5"
+                  >
+                    {PLATFORMS.map((p) => (
+                      <button
+                        key={p.value}
+                        type="button"
+                        onClick={() => togglePlatform(p.value)}
+                        aria-pressed={platforms.includes(p.value)}
+                        className={toggleCls(platforms.includes(p.value))}
+                      >
+                        {p.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <div>
+                <span id="tlds-label">
+                  <FieldLabel>Domain extensions</FieldLabel>
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby="tlds-label"
+                  className="mt-1.5 flex flex-wrap gap-1.5"
+                >
+                  {DEFAULT_TLDS.map((t) => {
+                    const price = formPricing[t];
+                    const priceNote = price
+                      ? ` · ~$${Math.round(price.reg)}/yr${price.renew > price.reg * 1.8 ? ` (renews $${Math.round(price.renew)})` : ""}`
+                      : "";
+                    return (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => toggleTld(t)}
+                        title={`${TLD_NOTES[t] ?? ""}${priceNote}`}
+                        aria-pressed={tlds.includes(t)}
+                        className={toggleCls(tlds.includes(t))}
+                      >
+                        .{t}
+                        {price && (
+                          <span className="ml-1.5 text-[10px] text-ink-faint">
+                            ${Math.round(price.reg)}
+                          </span>
+                        )}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <label className="block">
+                <FieldLabel hint="optional">Anything to avoid</FieldLabel>
+                <input
+                  value={avoid}
+                  onChange={(e) => setAvoid(e.target.value)}
+                  placeholder="no -ly / -ify names, nothing that sounds corporate"
+                  className="mt-1.5 w-full rounded-[3px] border border-edge bg-well p-2.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+                />
+              </label>
+
+              {error && (
+                <p role="alert" className="text-sm text-bad">
+                  {error}
+                </p>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full rounded-[3px] bg-accent py-3 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:bg-accent-hi disabled:opacity-60"
+              >
+                {loading ? "Forging…" : "Forge names"}
+              </button>
+            </form>
+
+            {(loading || (timeline.length > 0 && !done)) && (
+              <div
+                role="status"
+                className="mt-8 space-y-1 rounded-[4px] border border-edge bg-well p-4 text-sm"
+              >
+                {timeline.map((msg, i) => {
+                  const active = i === timeline.length - 1 && loading;
+                  return (
+                    <p
+                      key={i}
+                      className={active ? "text-ink" : "text-ink-faint"}
+                    >
+                      <span className={active ? "text-accent-ink" : "text-ok"}>
+                        {active ? "›" : "✓"}
+                      </span>{" "}
+                      {msg}
+                      {active && <span className="animate-pulse">▮</span>}
+                    </p>
+                  );
+                })}
               </div>
             )}
-          </div>
-          <ul className="mt-3 space-y-3">
-            {visibleIdeas.map((idea, i) => (
-              <IdeaCard
-                key={idea.name}
-                idea={idea}
-                rank={i + 1}
-                product={{ description, appType, platforms }}
-                tldPricing={tldPricing}
-                via={idea.via}
-                starred={shortlist.some(
-                  (e) =>
-                    e.domain === (idea.bestAvailable ?? idea.domains[0]?.domain),
-                )}
-                onStar={() => toggleStar(idea)}
-                onMoreLikeThis={() =>
-                  refine({
-                    seedIdea: {
-                      name: idea.name,
-                      style: idea.style,
-                      backstory: idea.backstory,
-                    },
-                    via: `in the spirit of: ${idea.name}`,
+
+            {graph && (
+              <KeywordGraphView
+                graph={graph}
+                selected={graphSelected}
+                onToggle={(term) =>
+                  setGraphSelected((cur) => {
+                    const next = new Set(cur);
+                    if (next.has(term)) next.delete(term);
+                    else next.add(term);
+                    return next;
                   })
                 }
+                onAddTerm={(term) => {
+                  setGraph((g) =>
+                    g && !g.nodes.some((n) => n.term === term)
+                      ? {
+                          nodes: [
+                            ...g.nodes,
+                            {
+                              term,
+                              kind: "core",
+                              note: "added by you",
+                              connects: [],
+                            },
+                          ],
+                        }
+                      : g,
+                  );
+                  setGraphSelected((cur) => new Set([...cur, term]));
+                }}
+                onForge={() =>
+                  refine({
+                    focusTerms: [...graphSelected],
+                    via: `forged from: ${[...graphSelected].join(" + ")}`,
+                  })
+                }
+                forging={refining}
               />
-            ))}
-          </ul>
-          <p className="mt-6 text-center text-xs text-black/40 dark:text-white/40">
-            &ldquo;Available&rdquo; means registerable at standard price —
-            &ldquo;taken&rdquo; domains may still be parked and listed for sale
-            at a premium. Always confirm at a registrar before buying. Share
-            this brief: the URL now encodes it.
-          </p>
-        </section>
-      )}
+            )}
+
+            {ideas.length > 0 && (
+              <section id="results" className="mt-8 scroll-mt-20">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
+                    {visibleIdeas.length} ideas
+                    {ideas.some((i) => i.bestAvailable)
+                      ? " — each has an available domain"
+                      : " — none came back available, try more extensions"}
+                    {!done && loading ? " — still working…" : ""}
+                  </h2>
+                  {usedStyles.length > 1 && (
+                    <div className="flex flex-wrap gap-1">
+                      {usedStyles.map((s) => (
+                        <button
+                          key={s}
+                          type="button"
+                          aria-pressed={styleFilter.has(s)}
+                          onClick={() =>
+                            setStyleFilter((cur) => {
+                              const next = new Set(cur);
+                              if (next.has(s)) next.delete(s);
+                              else next.add(s);
+                              return next;
+                            })
+                          }
+                          className={`rounded-[3px] border px-2 py-0.5 text-xs transition ${
+                            styleFilter.has(s)
+                              ? "border-accent bg-accent/10 text-ink"
+                              : "border-edge text-ink-faint hover:text-ink-dim"
+                          }`}
+                        >
+                          {s}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <ul className="mt-3 space-y-3">
+                  {visibleIdeas.map((idea, i) => (
+                    <IdeaCard
+                      key={idea.name}
+                      idea={idea}
+                      rank={i + 1}
+                      product={{ description, appType, platforms }}
+                      tldPricing={tldPricing}
+                      via={idea.via}
+                      starred={shortlist.some(
+                        (e) =>
+                          e.domain ===
+                          (idea.bestAvailable ?? idea.domains[0]?.domain),
+                      )}
+                      onStar={() => toggleStar(idea)}
+                      onMoreLikeThis={() =>
+                        refine({
+                          seedIdea: {
+                            name: idea.name,
+                            style: idea.style,
+                            backstory: idea.backstory,
+                          },
+                          via: `in the spirit of: ${idea.name}`,
+                        })
+                      }
+                    />
+                  ))}
+                </ul>
+                <p className="mt-6 text-center text-xs text-ink-faint">
+                  &ldquo;Available&rdquo; means registerable at standard price
+                  — &ldquo;taken&rdquo; domains may still be parked and listed
+                  for sale at a premium. Always confirm at a registrar before
+                  buying.
+                </p>
+              </section>
+            )}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }

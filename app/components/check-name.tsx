@@ -7,7 +7,8 @@ import { capture } from "./capture";
 
 /**
  * The highest-intent entry point in the category: "is the name in my head
- * available?" — instant, keyless, no model call.
+ * available?" — instant, keyless, no model call. Lives in the top bar;
+ * results drop down as a workbench panel.
  */
 export function CheckName({ tlds }: { tlds: string[] }) {
   const [name, setName] = useState("");
@@ -42,60 +43,70 @@ export function CheckName({ tlds }: { tlds: string[] }) {
   };
 
   return (
-    <div className="mx-auto mt-6 w-full max-w-xl rounded-xl border border-black/10 bg-white/60 p-3 dark:border-white/10 dark:bg-white/[0.03]">
-      <div className="flex gap-2">
-        <input
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              e.preventDefault();
-              run();
-            }
-          }}
-          placeholder="Already have a name? Check it instantly…"
-          aria-label="Check a name's domain availability"
-          className="flex-1 rounded-lg border border-black/10 bg-white/70 px-3 py-1.5 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:bg-white/5"
-        />
-        <button
-          type="button"
-          onClick={run}
-          disabled={loading || name.trim().length < 2}
-          className="rounded-lg bg-black px-3 py-1.5 text-sm font-medium text-white transition hover:bg-black/80 disabled:opacity-40 dark:bg-white dark:text-black"
+    <div className="relative flex items-center gap-2">
+      <input
+        value={name}
+        onChange={(e) => {
+          setName(e.target.value);
+          if (results) setResults(null);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            e.preventDefault();
+            run();
+          }
+          if (e.key === "Escape") setResults(null);
+        }}
+        placeholder="Check domain…"
+        aria-label="Check a name's domain availability"
+        className="w-40 rounded-[3px] border border-edge bg-well px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-56"
+      />
+      <button
+        type="button"
+        onClick={run}
+        disabled={loading || name.trim().length < 2}
+        className="rounded-[3px] bg-accent px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.15em] text-white transition hover:bg-accent-hi disabled:opacity-40"
+      >
+        {loading ? "…" : "Check"}
+      </button>
+
+      {(results || err) && (
+        <div
+          role="status"
+          className="absolute right-0 top-full z-20 mt-2 w-max max-w-[88vw] rounded-[4px] border border-edge bg-panel p-3 shadow-xl shadow-black/40"
         >
-          {loading ? "Checking…" : "Check"}
-        </button>
-      </div>
-      {err && (
-        <p role="alert" className="mt-2 text-sm text-red-600">
-          {err}
-        </p>
-      )}
-      {results && (
-        <div role="status" className="mt-2 flex flex-wrap gap-1.5">
-          {results.map((r) =>
-            r.status === "available" ? (
-              <a
-                key={r.domain}
-                href={`https://porkbun.com/checkout/search?q=${r.domain}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <StatusBadge
-                  status={r.status}
-                  domain={r.domain}
-                  source={r.source}
-                />
-              </a>
-            ) : (
-              <StatusBadge
-                key={r.domain}
-                status={r.status}
-                domain={r.domain}
-                source={r.source}
-                parked={r.parked}
-              />
-            ),
+          {err && (
+            <p role="alert" className="text-sm text-bad">
+              {err}
+            </p>
+          )}
+          {results && (
+            <div className="flex max-w-md flex-wrap gap-1.5">
+              {results.map((r) =>
+                r.status === "available" ? (
+                  <a
+                    key={r.domain}
+                    href={`https://porkbun.com/checkout/search?q=${r.domain}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <StatusBadge
+                      status={r.status}
+                      domain={r.domain}
+                      source={r.source}
+                    />
+                  </a>
+                ) : (
+                  <StatusBadge
+                    key={r.domain}
+                    status={r.status}
+                    domain={r.domain}
+                    source={r.source}
+                    parked={r.parked}
+                  />
+                ),
+              )}
+            </div>
           )}
         </div>
       )}

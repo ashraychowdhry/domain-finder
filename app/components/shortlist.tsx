@@ -88,24 +88,27 @@ export function ShortlistPanel({
   };
 
   return (
-    <section className="mt-8 rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5">
+    <section
+      id="shortlist"
+      className="mt-8 rounded-[4px] border border-warn/30 bg-panel p-5"
+    >
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-black/55 dark:text-white/55">
-          ★ My shortlist ({list.length})
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-warn">
+          ★ Shortlist ({list.length})
         </h2>
         <div className="flex gap-2">
           <button
             type="button"
             onClick={recheck}
             disabled={checking}
-            className="rounded-lg border border-black/15 px-3 py-1 text-sm transition hover:bg-black/5 disabled:opacity-50 dark:border-white/20 dark:hover:bg-white/10"
+            className="rounded-[3px] border border-edge bg-well px-3 py-1 text-xs uppercase tracking-[0.12em] text-ink-dim transition hover:border-ink-faint hover:text-ink disabled:opacity-50"
           >
             {checking ? "Re-checking…" : "Re-check availability"}
           </button>
           <button
             type="button"
             onClick={copyMarkdown}
-            className="rounded-lg border border-black/15 px-3 py-1 text-sm transition hover:bg-black/5 dark:border-white/20 dark:hover:bg-white/10"
+            className="rounded-[3px] border border-edge bg-well px-3 py-1 text-xs uppercase tracking-[0.12em] text-ink-dim transition hover:border-ink-faint hover:text-ink"
           >
             {copied ? "Copied ✓" : "Copy as Markdown"}
           </button>
@@ -119,9 +122,9 @@ export function ShortlistPanel({
               domain={e.domain}
               source={e.source}
             />
-            <span className="text-black/55 dark:text-white/55">{e.backstory}</span>
+            <span className="text-ink-dim">{e.backstory}</span>
             {e.checkedAt && (
-              <span className="text-xs text-black/40 dark:text-white/40">
+              <span className="text-xs text-ink-faint">
                 checked {new Date(e.checkedAt).toLocaleTimeString()}
               </span>
             )}
@@ -129,7 +132,7 @@ export function ShortlistPanel({
               type="button"
               onClick={() => onRemove(e.domain)}
               aria-label={`Remove ${e.domain} from shortlist`}
-              className="text-black/35 hover:text-black dark:text-white/35 dark:hover:text-white"
+              className="text-ink-faint transition hover:text-ink"
             >
               ×
             </button>

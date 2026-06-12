@@ -8,15 +8,16 @@ const KIND_LABELS: Record<KeywordKind, string> = {
   benefit: "Benefits",
   vibe: "Vibes",
   metaphor: "Metaphors",
-  root: "Roots & etymology",
+  root: "Roots",
 };
 
+/** Signal-colored outline chips per node kind (workbench palette). */
 const KIND_STYLES: Record<KeywordKind, string> = {
-  core: "text-indigo-700 ring-indigo-500/25 dark:text-indigo-300",
-  benefit: "text-emerald-700 ring-emerald-500/25 dark:text-emerald-300",
-  vibe: "text-pink-700 ring-pink-500/25 dark:text-pink-300",
-  metaphor: "text-amber-700 ring-amber-500/25 dark:text-amber-300",
-  root: "text-sky-700 ring-sky-500/25 dark:text-sky-300",
+  core: "text-ink border-edge",
+  benefit: "text-ok border-ok/40",
+  vibe: "text-bad border-bad/40",
+  metaphor: "text-warn border-warn/40",
+  root: "text-info border-info/40",
 };
 
 /**
@@ -45,73 +46,81 @@ export function KeywordGraphView({
   if (!kinds.length) return null;
 
   return (
-    <section className="mt-8 rounded-2xl border border-black/10 bg-white/70 p-5 dark:border-white/10 dark:bg-white/[0.04]">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-black/50 dark:text-white/50">
-          Keyword graph · tap nodes to steer, then forge from your selection
+    <section
+      id="graph"
+      className="mt-8 rounded-[4px] border border-edge bg-panel p-5"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
+          ❋ Keyword graph — tap nodes to steer
         </h2>
         <button
           type="button"
           onClick={onForge}
           disabled={selected.size === 0 || forging}
-          className="rounded-lg bg-indigo-600 px-3 py-1 text-sm font-medium text-white transition hover:bg-indigo-500 disabled:opacity-40"
+          className="rounded-[3px] bg-accent px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.12em] text-white transition hover:bg-accent-hi disabled:opacity-40"
         >
           {forging ? "Forging…" : `Forge from selected (${selected.size})`}
         </button>
       </div>
-      <div className="mt-3 space-y-2.5">
+
+      <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-5 sm:grid-cols-3 lg:grid-cols-5">
         {kinds.map((kind) => (
-          <div key={kind} className="flex flex-wrap items-baseline gap-1.5">
-            <span className="w-36 shrink-0 text-xs text-black/45 dark:text-white/45">
+          <div key={kind}>
+            <p className="text-[10px] uppercase tracking-[0.18em] text-ink-faint">
               {KIND_LABELS[kind]}
-            </span>
-            {graph.nodes
-              .filter((n) => n.kind === kind)
-              .map((n) => {
-                const isSel = selected.has(n.term);
-                return (
-                  <button
-                    key={n.term}
-                    type="button"
-                    onClick={() => onToggle(n.term)}
-                    aria-pressed={isSel}
-                    title={
-                      n.note +
-                      (n.connects.length
-                        ? ` · connects: ${n.connects.join(", ")}`
-                        : "")
-                    }
-                    aria-label={`${n.term}: ${n.note}`}
-                    className={`inline-flex items-center rounded-md px-2 py-0.5 text-sm ring-1 ring-inset transition ${KIND_STYLES[kind]} ${
-                      isSel
-                        ? "bg-black/10 font-medium dark:bg-white/15"
-                        : "bg-transparent opacity-75 hover:opacity-100"
-                    }`}
-                  >
-                    {n.term}
-                  </button>
-                );
-              })}
+            </p>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {graph.nodes
+                .filter((n) => n.kind === kind)
+                .map((n) => {
+                  const isSel = selected.has(n.term);
+                  return (
+                    <button
+                      key={n.term}
+                      type="button"
+                      onClick={() => onToggle(n.term)}
+                      aria-pressed={isSel}
+                      title={
+                        n.note +
+                        (n.connects.length
+                          ? ` · connects: ${n.connects.join(", ")}`
+                          : "")
+                      }
+                      aria-label={`${n.term}: ${n.note}`}
+                      className={`inline-flex items-center rounded-[3px] border px-2 py-1 text-sm transition ${
+                        isSel
+                          ? "border-accent bg-accent/15 text-ink"
+                          : `bg-well hover:bg-chip ${KIND_STYLES[kind]}`
+                      }`}
+                    >
+                      {isSel ? "▸ " : ""}
+                      {n.term}
+                    </button>
+                  );
+                })}
+            </div>
           </div>
         ))}
-        <div className="flex items-center gap-1.5 pt-1">
-          <span className="w-36 shrink-0 text-xs text-black/45 dark:text-white/45">
-            Your own term
-          </span>
-          <input
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && draft.trim()) {
-                e.preventDefault();
-                onAddTerm(draft.trim().toLowerCase());
-                setDraft("");
-              }
-            }}
-            placeholder="add a word + Enter"
-            className="w-44 rounded-md border border-black/10 bg-white/60 px-2 py-0.5 text-sm outline-none focus:border-black/30 dark:border-white/15 dark:bg-white/5"
-          />
-        </div>
+      </div>
+
+      <div className="mt-4 flex items-center gap-2 border-t border-edge-soft pt-3">
+        <span className="text-[10px] uppercase tracking-[0.18em] text-ink-faint">
+          Your own term
+        </span>
+        <input
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && draft.trim()) {
+              e.preventDefault();
+              onAddTerm(draft.trim().toLowerCase());
+              setDraft("");
+            }
+          }}
+          placeholder="add a word + Enter"
+          className="w-44 rounded-[3px] border border-edge bg-well px-2 py-1 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent"
+        />
       </div>
     </section>
   );
