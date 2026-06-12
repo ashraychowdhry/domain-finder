@@ -42,10 +42,16 @@ export function logUsage(
  */
 export function modelErrorMessage(err: unknown, prefix: string): string {
   const status = (err as { statusCode?: number } | null)?.statusCode;
-  if ((status === 401 || status === 403) && err instanceof Error) {
-    return `AI Gateway: ${err.message}`;
+  const msg = err instanceof Error ? err.message : "";
+  // Exhausted prepaid balance: the gateway fails closed — nothing is ever
+  // auto-charged. Tell the operator the next step is a MANUAL top-up.
+  if (status === 402 || /insufficient|out of credits|credit balance|balance is too low/i.test(msg)) {
+    return "AI Gateway credits are exhausted. Calls stop here — nothing is auto-charged. Top up manually in the Vercel dashboard (AI tab) to resume.";
   }
-  if (err instanceof Error && /rate.?limit|free tier/i.test(err.message)) {
+  if ((status === 401 || status === 403) && msg) {
+    return `AI Gateway: ${msg}`;
+  }
+  if (/rate.?limit|free tier/i.test(msg)) {
     return "The AI Gateway free tier is briefly rate-limited — wait a minute and try again (or add credits for unrestricted access).";
   }
   return `${prefix} — the model call failed. Please try again.`;
