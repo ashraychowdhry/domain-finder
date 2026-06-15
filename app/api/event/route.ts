@@ -16,6 +16,7 @@ const eventSchema = z.object({
     "idea_starred",
     "idea_analyzed",
     "name_checked",
+    "next_step_click",
     "zero_results",
   ]),
   /** Random anonymous browser id (localStorage), for session stitching. */

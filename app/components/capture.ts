@@ -10,6 +10,7 @@ export type CaptureEvent =
   | "idea_starred"
   | "idea_analyzed"
   | "name_checked"
+  | "next_step_click"
   | "zero_results";
 
 function sid(): string {

@@ -24,7 +24,7 @@ import {
 import { CheckName } from "./components/check-name";
 import { capture } from "./components/capture";
 import { encodeResults, decodeResults } from "./components/share";
-import { deployLink } from "@/lib/registrars";
+import { nextSteps } from "@/lib/registrars";
 
 interface SharedResults {
   graph: KeywordGraph;
@@ -931,19 +931,33 @@ export default function Finder() {
                   buying. Registrar links may become affiliate links — your
                   price never changes.
                 </p>
-                {deployLink() && (
-                  <p className="mt-2 text-center text-xs text-ink-faint">
-                    got your domain? deploy the app behind it →{" "}
-                    <a
-                      href={deployLink()!.href}
-                      target="_blank"
-                      rel="noopener noreferrer sponsored"
-                      className="text-accent-ink underline decoration-accent/40 hover:text-accent-hi"
-                    >
-                      {deployLink()!.name}
-                    </a>
+                <div className="mt-6 rounded-[4px] border border-edge bg-panel p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
+                    Now that you&apos;ve named it
                   </p>
-                )}
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {nextSteps().map((s) => (
+                      <a
+                        key={s.name}
+                        href={s.href}
+                        target="_blank"
+                        rel="noopener noreferrer sponsored"
+                        onClick={() =>
+                          capture("next_step_click", { step: s.name })
+                        }
+                        className="group inline-flex items-center gap-1.5 rounded-[3px] border border-edge bg-well px-3 py-1.5 text-sm text-ink-dim transition hover:border-accent hover:text-ink"
+                      >
+                        <span>{s.label}</span>
+                        <span className="text-ink-faint transition group-hover:text-accent-ink">
+                          {s.name} ▸
+                        </span>
+                      </a>
+                    ))}
+                  </div>
+                  <p className="mt-2 text-[10px] text-ink-faint">
+                    Some links may be affiliate — your price never changes.
+                  </p>
+                </div>
               </section>
             )}
           </div>

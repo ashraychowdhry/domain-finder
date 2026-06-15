@@ -78,10 +78,16 @@ npm run dev                  # http://localhost:3000
 | `NEXT_PUBLIC_AFF_SPACESHIP` | no | Impact tracking-link template with `{url}` — wraps the primary checkout link |
 | `NEXT_PUBLIC_AFF_NAMECHEAP` | no | Same, for the Namecheap compare link |
 | `NEXT_PUBLIC_AFF_DYNADOT` | no | Same, for the Dynadot compare link |
-| `NEXT_PUBLIC_DEPLOY_AFF_URL` (+`_LABEL`) | no | Shows a "deploy it" partner link under results (e.g. Railway referral) |
+| `NEXT_PUBLIC_DEPLOY_AFF_URL` (+`_LABEL`) | no | "Deploy it" next-step link (e.g. Railway referral) |
+| `NEXT_PUBLIC_AFF_LOOKA` | no | "Design a logo" next-step link (Looka, PartnerStack) |
+| `NEXT_PUBLIC_AFF_NORTHWEST` | no | "Form an LLC" next-step link (Northwest, Awin/ShareASale) |
+| `NEXT_PUBLIC_AFF_TRADEMARK` | no | "File a trademark" next-step link (Trademark Engine) |
 
-Affiliate templates must be the network's wrapped tracking links (raw query
-params violate program terms). Links work direct until templates are set;
+Two slot shapes: registrar links need a `{url}` **template** (the destination
+domain varies per result); the next-step links (logo/LLC/trademark/deploy) go
+to one fixed page, so set the env var to the **full** affiliate URL (no
+`{url}`). Use the network's wrapped tracking links — raw query params violate
+program terms. Every link works direct until its template is set, and
 commissions never change the user's price.
 
 ## Architecture
