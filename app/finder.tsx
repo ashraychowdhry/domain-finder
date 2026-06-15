@@ -23,7 +23,15 @@ import {
 } from "./components/shortlist";
 import { CheckName } from "./components/check-name";
 import { capture } from "./components/capture";
+import { encodeResults, decodeResults } from "./components/share";
 import { deployLink } from "@/lib/registrars";
+
+interface SharedResults {
+  graph: KeywordGraph;
+  ideas: DisplayIdea[];
+  takenNames?: string[];
+  tldPricing?: Record<string, TldPrice> | null;
+}
 
 const APP_TYPES: { value: AppType; label: string }[] = [
   { value: "web", label: "Web" },
@@ -198,6 +206,8 @@ export default function Finder() {
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
   const [formPricing, setFormPricing] = useState<Record<string, TldPrice>>({});
   const [linkCopied, setLinkCopied] = useState(false);
+  // True when the page is rendering results decoded from a shared link.
+  const [sharedView, setSharedView] = useState(false);
 
   // The form state at the moment of the last run (refine must match it).
   const runBrief = useRef<Brief | null>(null);
@@ -219,6 +229,21 @@ export default function Finder() {
       setTlds(brief.t?.length ? brief.t : [...DEFAULT_TLDS]);
       setAvoid(brief.av ?? "");
       setStylePrefs(brief.s ?? []);
+    }
+    // Shared link carries the FULL results in the #r= fragment — render them
+    // directly so a recipient sees exactly what was generated (no re-run).
+    const hash = window.location.hash;
+    if (hash.startsWith("#r=")) {
+      decodeResults<SharedResults>(hash.slice(3)).then((data) => {
+        if (!data?.ideas?.length) return;
+        setGraph(data.graph ?? null);
+        setIdeas(data.ideas);
+        setTakenNames(data.takenNames ?? []);
+        setTldPricing(data.tldPricing ?? null);
+        setDone(true);
+        setSharedView(true);
+        if (brief) runBrief.current = brief;
+      });
     }
     // TLD price garnish for the picker (slow on cold start; fine if late).
     fetch("/api/pricing")
@@ -297,6 +322,7 @@ export default function Finder() {
     setDone(false);
     setTakenNames([]);
     setStyleFilter(new Set());
+    setSharedView(false);
 
     const brief: Brief = {
       d: description,
@@ -435,7 +461,21 @@ export default function Finder() {
 
   const copyShareLink = async () => {
     try {
-      await navigator.clipboard.writeText(window.location.href);
+      const base = window.location.origin + window.location.pathname;
+      const brief = runBrief.current;
+      const query = brief ? `?b=${encodeBrief(brief)}` : "";
+      // Embed the actual results so the recipient sees them without re-running.
+      let frag = "";
+      if (ideas.length) {
+        const payload: SharedResults = {
+          graph: graph ?? { nodes: [] },
+          ideas,
+          takenNames,
+          tldPricing,
+        };
+        frag = `#r=${await encodeResults(payload)}`;
+      }
+      await navigator.clipboard.writeText(base + query + frag);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 1500);
     } catch {
@@ -515,12 +555,15 @@ export default function Finder() {
             <button
               type="button"
               onClick={copyShareLink}
-              className="w-full rounded-[3px] border border-edge bg-well px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-dim transition hover:border-ink-faint hover:text-ink"
+              disabled={ideas.length === 0}
+              className="w-full rounded-[3px] border border-edge bg-well px-3 py-1.5 text-[11px] uppercase tracking-[0.15em] text-ink-dim transition hover:border-ink-faint hover:text-ink disabled:opacity-40 disabled:hover:border-edge disabled:hover:text-ink-dim"
             >
               {linkCopied ? "Copied ✓" : "Copy share link"}
             </button>
             <p className="text-[10px] leading-relaxed text-ink-faint">
-              The URL encodes your brief — share it with a cofounder.
+              {ideas.length
+                ? "Encodes your brief AND these exact results — recipients see what you see."
+                : "Forge names first, then share a link that carries the results."}
             </p>
           </div>
         </aside>
@@ -787,6 +830,23 @@ export default function Finder() {
 
             {ideas.length > 0 && (
               <section id="results" className="mt-8 scroll-mt-20">
+                {sharedView && (
+                  <div className="mb-3 flex flex-wrap items-center justify-between gap-2 rounded-[3px] border border-accent/30 bg-accent/10 px-3 py-2 text-xs text-ink-dim">
+                    <span>
+                      <span className="font-semibold text-accent-ink">
+                        Shared results
+                      </span>{" "}
+                      — availability may have changed since this was forged.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setSharedView(false)}
+                      className="rounded-[3px] border border-edge bg-well px-2 py-0.5 uppercase tracking-[0.12em] text-ink-dim transition hover:text-ink"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                )}
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <h2 className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
                     {visibleIdeas.length} ideas

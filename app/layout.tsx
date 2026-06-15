@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import "./globals.css";
 
@@ -11,6 +11,10 @@ export const metadata: Metadata = {
   title: "Vocari — find a clean, available domain for your idea",
   description:
     "Describe your app idea and get clever, available domain names with a backstory — checked live for availability, with on-demand SEO and collision analysis.",
+};
+
+export const viewport: Viewport = {
+  themeColor: "#0b0b0e",
 };
 
 export default function RootLayout({

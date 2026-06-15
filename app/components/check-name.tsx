@@ -43,25 +43,43 @@ export function CheckName({ tlds }: { tlds: string[] }) {
     }
   };
 
+  const clear = () => {
+    setName("");
+    setResults(null);
+    setErr(null);
+  };
+
   return (
     <div className="relative flex items-center gap-2">
-      <input
-        value={name}
-        onChange={(e) => {
-          setName(e.target.value);
-          if (results) setResults(null);
-        }}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") {
-            e.preventDefault();
-            run();
-          }
-          if (e.key === "Escape") setResults(null);
-        }}
-        placeholder="Check domain…"
-        aria-label="Check a name's domain availability"
-        className="w-40 rounded-[3px] border border-edge bg-well px-3 py-1.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-56"
-      />
+      <div className="relative">
+        <input
+          value={name}
+          onChange={(e) => {
+            setName(e.target.value);
+            if (results) setResults(null);
+          }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              run();
+            }
+            if (e.key === "Escape") clear();
+          }}
+          placeholder="Check domain…"
+          aria-label="Check a name's domain availability"
+          className="w-40 rounded-[3px] border border-edge bg-well py-1.5 pl-3 pr-7 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-56"
+        />
+        {(name || results || err) && (
+          <button
+            type="button"
+            onClick={clear}
+            aria-label="Clear search"
+            className="absolute right-1.5 top-1/2 flex h-4 w-4 -translate-y-1/2 items-center justify-center rounded-[2px] text-ink-faint transition hover:bg-chip hover:text-ink"
+          >
+            ×
+          </button>
+        )}
+      </div>
       <button
         type="button"
         onClick={run}
