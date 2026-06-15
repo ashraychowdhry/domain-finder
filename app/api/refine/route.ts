@@ -15,7 +15,28 @@ import {
 import { DEFAULT_TLDS } from "@/lib/tlds";
 import type { GenerateInput, RefineResponse } from "@/lib/types";
 
-export const maxDuration = 60;
+export const maxDuration = 150;
+
+// The gateway free tier throttles bursts; a refine right after a generate
+// often lands in that window. Pause and retry rather than 502 — the client
+// shows a "Forging…" state throughout, so a slow success beats a failure.
+const isRateLimit = (e: unknown) =>
+  e instanceof Error && /rate.?limit|free tier/i.test(e.message);
+
+async function withBackoff<T>(
+  fn: () => Promise<T>,
+  waits: { used: number },
+): Promise<T> {
+  for (;;) {
+    try {
+      return await fn();
+    } catch (e) {
+      if (!isRateLimit(e) || waits.used >= 2) throw e;
+      waits.used++;
+      await new Promise((r) => setTimeout(r, 35_000));
+    }
+  }
+}
 
 const inputSchema = z.object({
   description: z.string().max(2000),
@@ -94,27 +115,33 @@ export async function POST(req: Request) {
     const allRanked: Awaited<ReturnType<typeof vetAndCheck>>["ranked"] = [];
     const takenNames: string[] = [];
     const exclude = [...body.excludeNames];
+    const waits = { used: 0 };
 
     // Tight TLD picks chew through candidates — allow a second round when
     // the first yields fewer than 4 available ideas (~2 cents worst case).
     for (let round = 0; round < 2; round++) {
-      const result = await generateObject({
-        model: NAMING_MODEL,
-        schema: refillSchema(6, 14),
-        prompt: buildRefillPrompt(
-          input,
-          {
-            graph: body.graph,
-            excludeNames: exclude,
-            focusTerms: body.focusTerms,
-            seedIdea: body.seedIdea,
-            reason: "steer",
-          },
-          10,
-        ),
-        temperature: 0.9,
-        maxOutputTokens: 4500,
-      });
+      const result = await withBackoff(
+        () =>
+          generateObject({
+            model: NAMING_MODEL,
+            schema: refillSchema(6, 14),
+            prompt: buildRefillPrompt(
+              input,
+              {
+                graph: body.graph,
+                excludeNames: exclude,
+                focusTerms: body.focusTerms,
+                seedIdea: body.seedIdea,
+                reason: "steer",
+              },
+              10,
+            ),
+            temperature: 0.9,
+            maxOutputTokens: 4500,
+            maxRetries: 1,
+          }),
+        waits,
+      );
       logUsage(`refine:round${round}`, result.usage);
 
       const vetted = await vetAndCheck(result.object.ideas, input, seen);

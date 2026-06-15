@@ -248,6 +248,8 @@ export function IdeaCard({
   starred,
   onStar,
   onMoreLikeThis,
+  busy,
+  disabled,
   via,
   rank,
 }: {
@@ -257,6 +259,10 @@ export function IdeaCard({
   starred: boolean;
   onStar: () => void;
   onMoreLikeThis: () => void;
+  /** This card's "More like this" request is in flight. */
+  busy?: boolean;
+  /** Any refine is in flight — disable to prevent overlap. */
+  disabled?: boolean;
   via?: string;
   rank: number;
 }) {
@@ -372,9 +378,10 @@ export function IdeaCard({
         <button
           type="button"
           onClick={onMoreLikeThis}
-          className="font-semibold uppercase tracking-[0.12em] text-accent-ink transition hover:text-accent-hi"
+          disabled={disabled}
+          className="font-semibold uppercase tracking-[0.12em] text-accent-ink transition hover:text-accent-hi disabled:opacity-50"
         >
-          More like this ▸
+          {busy ? "Forging…" : "More like this ▸"}
         </button>
         {idea.bestAvailable && (
           <span>

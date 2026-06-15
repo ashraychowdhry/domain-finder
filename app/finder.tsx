@@ -190,6 +190,10 @@ export default function Finder() {
 
   const [graphSelected, setGraphSelected] = useState<Set<string>>(new Set());
   const [refining, setRefining] = useState(false);
+  // Which control triggered the in-flight refine (idea name, or "__graph__").
+  const [refineSource, setRefineSource] = useState<string | null>(null);
+  // Visible-in-results feedback for refine outcomes (success/empty/error).
+  const [refineNote, setRefineNote] = useState<string | null>(null);
   const [styleFilter, setStyleFilter] = useState<Set<NamingStyle>>(new Set());
   const [shortlist, setShortlist] = useState<ShortlistEntry[]>([]);
   const [formPricing, setFormPricing] = useState<Record<string, TldPrice>>({});
@@ -354,11 +358,15 @@ export default function Finder() {
   const refine = async (opts: {
     focusTerms?: string[];
     seedIdea?: { name: string; style: string; backstory: string };
+    /** Which card/control triggered this — drives the per-card busy state. */
+    source: string;
     via: string;
   }) => {
     if (!graph || refining) return;
     const brief = runBrief.current;
     setRefining(true);
+    setRefineSource(opts.source);
+    setRefineNote(null);
     setError(null);
     capture("refine_clicked", { mode: opts.seedIdea ? "similar" : "steer" });
     try {
@@ -391,10 +399,18 @@ export default function Finder() {
         .map((i) => ({ ...i, via: opts.via }));
       setIdeas((cur) => [...fresh, ...cur]);
       setTakenNames((cur) => [...new Set([...cur, ...json.takenNames])]);
+      setRefineNote(
+        fresh.length
+          ? `Added ${fresh.length} new idea${fresh.length === 1 ? "" : "s"} at the top — ${opts.via}.`
+          : "No fresh available names this round — try different graph nodes or extensions.",
+      );
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Refine failed.");
+      setRefineNote(
+        err instanceof Error ? err.message : "Refine failed — please try again.",
+      );
     } finally {
       setRefining(false);
+      setRefineSource(null);
     }
   };
 
@@ -761,10 +777,11 @@ export default function Finder() {
                 onForge={() =>
                   refine({
                     focusTerms: [...graphSelected],
+                    source: "__graph__",
                     via: `forged from: ${[...graphSelected].join(" + ")}`,
                   })
                 }
-                forging={refining}
+                forging={refining && refineSource === "__graph__"}
               />
             )}
 
@@ -777,6 +794,9 @@ export default function Finder() {
                       ? " — each has an available domain"
                       : " — none came back available, try more extensions"}
                     {!done && loading ? " — still working…" : ""}
+                    {refining && (
+                      <span className="text-accent-ink"> — forging more…</span>
+                    )}
                   </h2>
                   {usedStyles.length > 1 && (
                     <div className="flex flex-wrap gap-1">
@@ -805,6 +825,14 @@ export default function Finder() {
                     </div>
                   )}
                 </div>
+                {refineNote && (
+                  <p
+                    role="status"
+                    className="mt-3 rounded-[3px] border border-edge bg-well px-3 py-2 text-xs text-ink-dim"
+                  >
+                    {refineNote}
+                  </p>
+                )}
                 <ul className="mt-3 space-y-3">
                   {visibleIdeas.map((idea, i) => (
                     <IdeaCard
@@ -814,6 +842,8 @@ export default function Finder() {
                       product={{ description, appType, platforms }}
                       tldPricing={tldPricing}
                       via={idea.via}
+                      busy={refineSource === idea.name}
+                      disabled={refining}
                       starred={shortlist.some(
                         (e) =>
                           e.domain ===
@@ -827,6 +857,7 @@ export default function Finder() {
                             style: idea.style,
                             backstory: idea.backstory,
                           },
+                          source: idea.name,
                           via: `in the spirit of: ${idea.name}`,
                         })
                       }
