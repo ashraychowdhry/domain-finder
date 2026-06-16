@@ -79,6 +79,7 @@ const inputSchema = z.object({
     )
     .max(6)
     .optional(),
+  lengthPref: z.enum(["short", "medium", "any"]).optional(),
 });
 
 // Identical briefs (double-submits, shared-URL re-runs) replay the finished
@@ -193,7 +194,7 @@ async function runPipeline(
           () =>
             generateObject({
               model: NAMING_MODEL,
-              schema: firstRoundSchema(12, 16),
+              schema: firstRoundSchema(12, 16, input.lengthPref),
               prompt: buildFirstPrompt(input, 14),
               temperature: 0.9,
               maxOutputTokens: 6000,
@@ -218,7 +219,7 @@ async function runPipeline(
           () =>
             generateObject({
               model: NAMING_MODEL,
-              schema: refillSchema(Math.min(6, count), 16),
+              schema: refillSchema(Math.min(6, count), 16, input.lengthPref),
               prompt: buildRefillPrompt(
                 input,
                 {

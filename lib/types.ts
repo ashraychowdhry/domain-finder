@@ -12,6 +12,9 @@ export type NamingStyle =
   | "misspelling"
   | "metaphor";
 
+/** Optional name-length preference — a soft bias, never a hard filter. */
+export type NameLength = "short" | "medium" | "any";
+
 export interface GenerateInput {
   /** Free-text description of the product / idea. */
   description: string;
@@ -27,6 +30,8 @@ export interface GenerateInput {
   avoid?: string;
   /** Preferred naming styles; empty = let the model vary. */
   stylePrefs?: NamingStyle[];
+  /** Preferred name length; "any"/undefined = no bias (default). */
+  lengthPref?: NameLength;
 }
 
 /** Node categories in the extracted keyword graph. */

@@ -65,9 +65,9 @@ export function CheckName({ tlds }: { tlds: string[] }) {
             }
             if (e.key === "Escape") clear();
           }}
-          placeholder="Check domain…"
-          aria-label="Check a name's domain availability"
-          className="w-40 rounded-[3px] border border-edge bg-well py-1.5 pl-3 pr-7 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-56"
+          placeholder="Already have a name? Check it…"
+          aria-label="Check a domain you already have across .com .io .ai .app"
+          className="w-44 rounded-[3px] border border-edge bg-well py-1.5 pl-3 pr-7 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-64"
         />
         {(name || results || err) && (
           <button

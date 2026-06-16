@@ -7,6 +7,7 @@ import type {
   GenerateEvent,
   GenerateResponse,
   KeywordGraph,
+  NameLength,
   NamingStyle,
   Platform,
   RankedIdea,
@@ -53,6 +54,19 @@ const STYLE_OPTIONS: { value: NamingStyle; label: string }[] = [
   { value: "misspelling", label: "Playful respelling" },
   { value: "metaphor", label: "Metaphor" },
 ];
+
+const LENGTH_OPTIONS: { value: NameLength; label: string }[] = [
+  { value: "short", label: "Short ≤6" },
+  { value: "medium", label: "Balanced 7-10" },
+  { value: "any", label: "Any" },
+];
+
+const SAMPLE = {
+  description:
+    "A calm, AI-powered journaling app that turns daily notes into gentle weekly reflections.",
+  keywords: ["journal", "calm", "reflect"],
+  vibes: ["minimal", "warm"],
+};
 
 type DisplayIdea = RankedIdea & { via?: string };
 
@@ -162,6 +176,7 @@ interface Brief {
   t: string[];
   av: string;
   s: NamingStyle[];
+  l?: NameLength;
 }
 
 function encodeBrief(b: Brief): string {
@@ -184,6 +199,9 @@ export default function Finder() {
   const [tlds, setTlds] = useState<string[]>([...DEFAULT_TLDS]);
   const [avoid, setAvoid] = useState("");
   const [stylePrefs, setStylePrefs] = useState<NamingStyle[]>([]);
+  const [lengthPref, setLengthPref] = useState<NameLength>("any");
+  // Optional config is collapsed by default so the required field + CTA lead.
+  const [showOptions, setShowOptions] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [timeline, setTimeline] = useState<string[]>([]);
@@ -229,6 +247,18 @@ export default function Finder() {
       setTlds(brief.t?.length ? brief.t : [...DEFAULT_TLDS]);
       setAvoid(brief.av ?? "");
       setStylePrefs(brief.s ?? []);
+      setLengthPref(brief.l ?? "any");
+      // A shared brief usually has config set — open the optional panel so
+      // the recipient can see what was chosen.
+      if (
+        brief.k?.length ||
+        brief.v?.length ||
+        brief.s?.length ||
+        brief.av ||
+        brief.l
+      ) {
+        setShowOptions(true);
+      }
     }
     // Shared link carries the FULL results in the #r= fragment — render them
     // directly so a recipient sees exactly what was generated (no re-run).
@@ -270,6 +300,13 @@ export default function Finder() {
     setStylePrefs((cur) =>
       cur.includes(s) ? cur.filter((x) => x !== s) : [...cur, s],
     );
+
+  const fillSample = () => {
+    setDescription(SAMPLE.description);
+    setKeywords(SAMPLE.keywords);
+    setVibes(SAMPLE.vibes);
+    setShowOptions(true);
+  };
 
   const handleEvent = (e: GenerateEvent) => {
     switch (e.type) {
@@ -333,6 +370,7 @@ export default function Finder() {
       t: tlds,
       av: avoid,
       s: stylePrefs,
+      l: lengthPref === "any" ? undefined : lengthPref,
     };
     runBrief.current = brief;
     window.history.replaceState(null, "", `?b=${encodeBrief(brief)}`);
@@ -354,6 +392,7 @@ export default function Finder() {
           tlds,
           avoid,
           stylePrefs: stylePrefs.length ? stylePrefs : undefined,
+          lengthPref: lengthPref === "any" ? undefined : lengthPref,
         }),
       });
       if (!res.ok || !res.body) {
@@ -407,6 +446,7 @@ export default function Finder() {
           tlds: brief?.t ?? tlds,
           avoid: brief?.av || undefined,
           stylePrefs: brief?.s.length ? brief.s : undefined,
+          lengthPref: brief?.l ?? (lengthPref === "any" ? undefined : lengthPref),
           graph,
           excludeNames: [...ideas.map((i) => i.name), ...takenNames],
           focusTerms: opts.focusTerms,
@@ -487,11 +527,13 @@ export default function Finder() {
     ? ideas.filter((i) => styleFilter.has(i.style))
     : ideas;
   const usedStyles = [...new Set(ideas.map((i) => i.style))];
+  // Only surface a status pip when something is happening — an idle "READY"
+  // dot reads as "unfinished" to a first-time visitor.
   const status = loading
     ? ["FORGING", "text-accent-ink"]
     : error
       ? ["ERROR", "text-bad"]
-      : ["READY", "text-ok"];
+      : null;
   const descLines = description.split("\n").length;
 
   const navItems: { label: string; href: string; active: boolean }[] = [
@@ -515,11 +557,13 @@ export default function Finder() {
               v0.9.0-beta
             </span>
           </a>
-          <span
-            className={`hidden items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] sm:flex ${status[1]}`}
-          >
-            ● {status[0]}
-          </span>
+          {status && (
+            <span
+              className={`hidden items-center gap-1.5 text-[10px] uppercase tracking-[0.18em] sm:flex ${status[1]}`}
+            >
+              ● {status[0]}
+            </span>
+          )}
           <div className="ml-auto">
             <CheckName tlds={tlds} />
           </div>
@@ -573,19 +617,42 @@ export default function Finder() {
         <main className="min-w-0 flex-1">
           <div className="mx-auto w-full max-w-3xl px-4 py-8 sm:py-12">
             <header>
-              <h1 className="text-2xl font-bold tracking-tight">
-                Find a name worth building on
+              <h1 className="text-2xl font-bold tracking-tight sm:text-3xl">
+                Find a brandable domain that&apos;s actually available.
               </h1>
-              <p className="mt-1.5 max-w-xl text-sm text-ink-dim">
-                Clean, available domains with clever backstories — vetted live
-                against registries, the App Store, npm & the open web.
+              <p className="mt-2 max-w-xl text-sm text-ink-dim">
+                Describe what you&apos;re building. Get short, memorable names —
+                each one checked live against the registries, App Store &amp;
+                npm, so every domain is registerable.
               </p>
-              <a
-                href="#how-it-works"
-                className="mt-2 inline-block text-xs text-accent-ink transition hover:text-accent-hi"
-              >
-                How it works &amp; FAQ ↓
-              </a>
+              <p className="mt-1.5 text-xs text-ink-faint">
+                Free AI naming engine · no signup · results in ~20s ·{" "}
+                <a
+                  href="#how-it-works"
+                  className="text-accent-ink transition hover:text-accent-hi"
+                >
+                  how it works ↓
+                </a>
+              </p>
+
+              {/* 3-step model, up front (the full version lives at the bottom). */}
+              <ol className="mt-5 grid gap-2 text-xs text-ink-dim sm:grid-cols-3">
+                {[
+                  "Describe your product — a sentence is plenty.",
+                  "Get brandable names, each with an available domain.",
+                  "See SEO & collision risk, then register.",
+                ].map((step, i) => (
+                  <li
+                    key={i}
+                    className="rounded-[3px] border border-edge-soft bg-well px-3 py-2"
+                  >
+                    <span className="font-mono text-accent-ink">
+                      {String(i + 1).padStart(2, "0")}
+                    </span>{" "}
+                    {step}
+                  </li>
+                ))}
+              </ol>
             </header>
 
             <ShortlistPanel
@@ -602,7 +669,19 @@ export default function Finder() {
               className="mt-8 scroll-mt-20 space-y-5 rounded-[4px] border border-edge bg-panel p-5 sm:p-6"
             >
               <label className="block">
-                <FieldLabel required>What are you building?</FieldLabel>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <FieldLabel required>What are you building?</FieldLabel>
+                  <button
+                    type="button"
+                    onClick={fillSample}
+                    className="text-xs text-accent-ink transition hover:text-accent-hi"
+                  >
+                    Try a sample →
+                  </button>
+                </div>
+                <p className="mt-1 text-xs text-ink-faint">
+                  A sentence or two is plenty — everything below is optional.
+                </p>
                 <div className="relative mt-1.5">
                   <textarea
                     value={description}
@@ -624,6 +703,21 @@ export default function Finder() {
                 </div>
               </label>
 
+              <button
+                type="button"
+                onClick={() => setShowOptions((v) => !v)}
+                aria-expanded={showOptions}
+                className="flex w-full items-center justify-between rounded-[3px] border border-edge-soft bg-well px-3 py-2 text-xs text-ink-dim transition hover:border-ink-faint hover:text-ink"
+              >
+                <span>
+                  Add keywords, vibe, naming style, length &amp; extensions —
+                  optional
+                </span>
+                <span className="text-accent-ink">{showOptions ? "−" : "+"}</span>
+              </button>
+
+              {showOptions && (
+                <div className="space-y-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <TagInput
                   label="Keywords"
@@ -659,6 +753,31 @@ export default function Finder() {
                       className={toggleCls(stylePrefs.includes(s.value))}
                     >
                       {s.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="rounded-[3px] border border-edge-soft bg-well/50 p-4">
+                <span id="length-label">
+                  <FieldLabel hint="optional — shorter names are often taken">
+                    Name length
+                  </FieldLabel>
+                </span>
+                <div
+                  role="group"
+                  aria-labelledby="length-label"
+                  className="mt-2 flex flex-wrap gap-1.5"
+                >
+                  {LENGTH_OPTIONS.map((o) => (
+                    <button
+                      key={o.value}
+                      type="button"
+                      onClick={() => setLengthPref(o.value)}
+                      aria-pressed={lengthPref === o.value}
+                      className={toggleCls(lengthPref === o.value)}
+                    >
+                      {o.label}
                     </button>
                   ))}
                 </div>
@@ -755,6 +874,8 @@ export default function Finder() {
                   className="mt-1.5 w-full rounded-[3px] border border-edge bg-well p-2.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent"
                 />
               </label>
+                </div>
+              )}
 
               {error && (
                 <p role="alert" className="text-sm text-bad">
@@ -762,13 +883,18 @@ export default function Finder() {
                 </p>
               )}
 
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full rounded-[3px] bg-accent py-3 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:bg-accent-hi disabled:opacity-60"
-              >
-                {loading ? "Forging…" : "Forge names"}
-              </button>
+              <div>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full rounded-[3px] bg-accent py-3 text-sm font-bold uppercase tracking-[0.2em] text-white transition hover:bg-accent-hi disabled:opacity-60"
+                >
+                  {loading ? "Forging…" : "Generate available names"}
+                </button>
+                <p className="mt-1.5 text-center text-[11px] text-ink-faint">
+                  Free · no signup · ~20s
+                </p>
+              </div>
             </form>
 
             {(loading || (timeline.length > 0 && !done)) && (

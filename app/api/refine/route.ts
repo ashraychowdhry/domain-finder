@@ -55,6 +55,7 @@ const inputSchema = z.object({
     )
     .max(6)
     .optional(),
+  lengthPref: z.enum(["short", "medium", "any"]).optional(),
   graph: z.object({
     nodes: z
       .array(
@@ -110,6 +111,7 @@ export async function POST(req: Request) {
     tlds: body.tlds.length ? body.tlds : [...DEFAULT_TLDS],
     avoid: body.avoid,
     stylePrefs: body.stylePrefs,
+    lengthPref: body.lengthPref,
   };
 
   try {
@@ -127,7 +129,7 @@ export async function POST(req: Request) {
         () =>
           generateObject({
             model: NAMING_MODEL,
-            schema: refillSchema(6, 14),
+            schema: refillSchema(6, 14, input.lengthPref),
             prompt: buildRefillPrompt(
               input,
               {

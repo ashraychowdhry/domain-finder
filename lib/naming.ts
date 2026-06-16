@@ -11,6 +11,7 @@ import type {
   GenerateInput,
   KeywordGraph,
   NameIdea,
+  NameLength,
   NamingStyle,
   RankedIdea,
 } from "./types";
@@ -52,13 +53,23 @@ export const graphSchema = z.object({
     ),
 });
 
-export function ideaListSchema(min: number, max: number) {
+function nameLenDescribe(lengthPref?: NameLength): string {
+  if (lengthPref === "short")
+    return "Base brand name, no TLD. Lowercase a-z only, ideally 4-7 chars.";
+  if (lengthPref === "medium")
+    return "Base brand name, no TLD. Lowercase a-z only, ideally 7-11 chars.";
+  return "Base brand name, no TLD. Lowercase a-z only, 3-12 chars.";
+}
+
+export function ideaListSchema(
+  min: number,
+  max: number,
+  lengthPref?: NameLength,
+) {
   return z
     .array(
       z.object({
-        name: z
-          .string()
-          .describe("Base brand name, no TLD. Lowercase a-z only, 3-12 chars."),
+        name: z.string().describe(nameLenDescribe(lengthPref)),
         preferredTld: z
           .string()
           .describe("Best TLD for this name from the allowed list."),
@@ -92,12 +103,23 @@ export function ideaListSchema(min: number, max: number) {
 
 // Round 1: graph FIRST (schema order is deliberate — the graph is the
 // scaffolding the names must draw from), then names.
-export function firstRoundSchema(min: number, max: number) {
-  return z.object({ graph: graphSchema, ideas: ideaListSchema(min, max) });
+export function firstRoundSchema(
+  min: number,
+  max: number,
+  lengthPref?: NameLength,
+) {
+  return z.object({
+    graph: graphSchema,
+    ideas: ideaListSchema(min, max, lengthPref),
+  });
 }
 
-export function refillSchema(min: number, max: number) {
-  return z.object({ ideas: ideaListSchema(min, max) });
+export function refillSchema(
+  min: number,
+  max: number,
+  lengthPref?: NameLength,
+) {
+  return z.object({ ideas: ideaListSchema(min, max, lengthPref) });
 }
 
 // ---------------------------------------------------------------------------
@@ -156,6 +178,15 @@ function stylePrefLine(stylePrefs?: NamingStyle[]): string | null {
   return `PREFERRED STYLES: ${stylePrefs.join(", ")} — focus most candidates on these techniques (still vary within them).`;
 }
 
+/** Soft length guidance — relaxes when a strict short name would be taken. */
+function lengthPrefLine(lengthPref?: NameLength): string | null {
+  if (lengthPref === "short")
+    return "TARGET LENGTH: lean toward 4-6 characters, but a great 7-8 char name beats a forced short one — never sacrifice brandability or availability for brevity (4-5 letter .coms are almost all taken; mine coinages and rare real words).";
+  if (lengthPref === "medium")
+    return "TARGET LENGTH: aim for 7-10 characters — room for real-root coinages and compounds.";
+  return null;
+}
+
 export function buildFirstPrompt(input: GenerateInput, count: number): string {
   const platforms = input.platforms.length
     ? input.platforms.join(", ")
@@ -180,6 +211,7 @@ export function buildFirstPrompt(input: GenerateInput, count: number): string {
     "",
     vibePhonetics(input.vibes) ?? "",
     stylePrefLine(input.stylePrefs) ?? "",
+    lengthPrefLine(input.lengthPref) ?? "",
     "- Prefer names unlikely to collide with large existing companies/apps — a name owned by a big startup buries a newcomer in search.",
     "- Vary styles across the set. Pick preferredTld from the allowed list per name.",
     "",
@@ -235,6 +267,7 @@ export function buildRefillPrompt(
     "",
     vibePhonetics(input.vibes) ?? "",
     stylePrefLine(input.stylePrefs) ?? "",
+    lengthPrefLine(input.lengthPref) ?? "",
     "",
     `Return ${count} new candidates. Backstories one tight sentence (<~18 words). Honest sourceNodes per name.`,
   ]
@@ -265,7 +298,7 @@ export interface VetResult {
  */
 export async function vetAndCheck(
   ideas: NameIdea[],
-  input: Pick<GenerateInput, "keywords" | "tlds">,
+  input: Pick<GenerateInput, "keywords" | "tlds" | "lengthPref">,
   seen: Set<string>,
 ): Promise<VetResult> {
   const dropped: string[] = [];
@@ -341,7 +374,7 @@ export async function vetAndCheck(
       flags: c.flags,
       score: 0,
     };
-    idea.score = preScore(idea, c.penalty);
+    idea.score = preScore(idea, c.penalty, input.lengthPref);
     ranked.push(idea);
     if (!bestAvailable) takenNames.push(c.idea.name);
   }
@@ -350,12 +383,18 @@ export async function vetAndCheck(
 }
 
 /** Deterministic pre-judge score: availability + brevity - warnings. */
-function preScore(idea: RankedIdea, penalty: number): number {
+function preScore(
+  idea: RankedIdea,
+  penalty: number,
+  lengthPref?: NameLength,
+): number {
   const hasCom = idea.domains.some(
     (d) => d.tld === "com" && d.status === "available",
   );
   const anyAvailable = idea.domains.some((d) => d.status === "available");
-  const lenPenalty = Math.max(0, idea.name.length - 10) * 1.5;
+  // When the user asked for short names, reward brevity (penalize sooner).
+  const knee = lengthPref === "short" ? 6 : 10;
+  const lenPenalty = Math.max(0, idea.name.length - knee) * 1.5;
   return (
     (hasCom ? 30 : 0) + (anyAvailable ? 15 : 0) + 40 - lenPenalty - penalty
   );
