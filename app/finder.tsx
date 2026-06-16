@@ -499,6 +499,7 @@ export default function Finder() {
     { label: "Keyword graph", href: "#graph", active: Boolean(graph) },
     { label: "Results", href: "#results", active: ideas.length > 0 },
     { label: "Shortlist", href: "#shortlist", active: shortlist.length > 0 },
+    { label: "How it works / FAQ", href: "#how-it-works", active: true },
   ];
 
   return (
@@ -579,6 +580,12 @@ export default function Finder() {
                 Clean, available domains with clever backstories — vetted live
                 against registries, the App Store, npm & the open web.
               </p>
+              <a
+                href="#how-it-works"
+                className="mt-2 inline-block text-xs text-accent-ink transition hover:text-accent-hi"
+              >
+                How it works &amp; FAQ ↓
+              </a>
             </header>
 
             <ShortlistPanel

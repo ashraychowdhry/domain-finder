@@ -69,7 +69,7 @@ const faqJsonLd = {
 
 export function SeoContent() {
   return (
-    <section className="border-t border-edge bg-bg">
+    <section id="how-it-works" className="scroll-mt-20 border-t border-edge bg-bg">
       <div className="mx-auto w-full max-w-3xl px-4 py-14">
         <h2 className="text-xl font-bold tracking-tight text-ink">
           How Vocari finds available domain names
