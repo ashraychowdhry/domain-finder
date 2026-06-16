@@ -56,7 +56,7 @@ const STYLE_OPTIONS: { value: NamingStyle; label: string }[] = [
 ];
 
 const LENGTH_OPTIONS: { value: NameLength; label: string }[] = [
-  { value: "short", label: "Short ≤6" },
+  { value: "short", label: "Short 4-6" },
   { value: "medium", label: "Balanced 7-10" },
   { value: "any", label: "Any" },
 ];
