@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { checkBotId } from "botid/server";
+import { spendGuard } from "@/lib/ratelimit";
 import { ANALYSIS_MODEL, logUsage, modelErrorMessage } from "@/lib/model";
 import { gatherCollisionSignals, type CollisionSignals } from "@/lib/collisions";
 import type { AnalyzeResponse } from "@/lib/types";
@@ -133,6 +134,8 @@ export async function POST(req: Request) {
   if (verification.isBot) {
     return Response.json({ error: "Automated traffic blocked." }, { status: 403 });
   }
+  const limited = spendGuard(req, "anl", 30);
+  if (limited) return limited;
 
   let parsedBody: z.infer<typeof inputSchema>;
   try {

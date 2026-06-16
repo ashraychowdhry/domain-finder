@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Geist_Mono } from "next/font/google";
 import Script from "next/script";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const geistMono = Geist_Mono({
@@ -8,14 +9,60 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE = "https://vocari.dev";
+const DESCRIPTION =
+  "Vocari is a free AI domain name generator for developers and founders. Describe your idea and get brandable, available domain names — checked live against the registries, with SEO and brand-collision screening.";
+
 export const metadata: Metadata = {
-  title: "Vocari — find a clean, available domain for your idea",
-  description:
-    "Describe your app idea and get clever, available domain names with a backstory — checked live for availability, with on-demand SEO and collision analysis.",
+  metadataBase: new URL(SITE),
+  title: {
+    default: "Vocari — AI Domain Name Generator & Availability Finder",
+    template: "%s · Vocari",
+  },
+  description: DESCRIPTION,
+  applicationName: "Vocari",
+  keywords: [
+    "domain name generator",
+    "AI domain name generator",
+    "available domain names",
+    "domain name ideas",
+    "startup name generator",
+    "business name generator",
+    "domain availability checker",
+    "brandable domain names",
+    "available .com domains",
+    "app name generator",
+  ],
+  authors: [{ name: "Vocari" }],
+  alternates: { canonical: "/" },
+  robots: { index: true, follow: true },
+  openGraph: {
+    type: "website",
+    url: SITE,
+    siteName: "Vocari",
+    title: "Vocari — AI Domain Name Generator for Developers",
+    description: DESCRIPTION,
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Vocari — AI Domain Name Generator for Developers",
+    description: DESCRIPTION,
+  },
 };
 
 export const viewport: Viewport = {
   themeColor: "#0b0b0e",
+};
+
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@type": "WebApplication",
+  name: "Vocari",
+  url: SITE,
+  applicationCategory: "DeveloperApplication",
+  operatingSystem: "Any",
+  description: DESCRIPTION,
+  offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
 };
 
 export default function RootLayout({
@@ -27,6 +74,11 @@ export default function RootLayout({
     <html lang="en" className={`${geistMono.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         {children}
+        <Analytics />
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        />
         {/* Impact Universal Tracking Tag — verifies the site for affiliate
             programs (Spaceship et al.) and transforms approved-merchant links
             into tracked affiliate links. */}

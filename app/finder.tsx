@@ -858,32 +858,43 @@ export default function Finder() {
                       <span className="text-accent-ink"> — forging more…</span>
                     )}
                   </h2>
-                  {usedStyles.length > 1 && (
-                    <div className="flex flex-wrap gap-1">
-                      {usedStyles.map((s) => (
-                        <button
-                          key={s}
-                          type="button"
-                          aria-pressed={styleFilter.has(s)}
-                          onClick={() =>
-                            setStyleFilter((cur) => {
-                              const next = new Set(cur);
-                              if (next.has(s)) next.delete(s);
-                              else next.add(s);
-                              return next;
-                            })
-                          }
-                          className={`rounded-[3px] border px-2 py-0.5 text-xs transition ${
-                            styleFilter.has(s)
-                              ? "border-accent bg-accent/10 text-ink"
-                              : "border-edge text-ink-faint hover:text-ink-dim"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                  <div className="flex flex-wrap items-center gap-2">
+                    {usedStyles.length > 1 && (
+                      <div className="flex flex-wrap gap-1">
+                        {usedStyles.map((s) => (
+                          <button
+                            key={s}
+                            type="button"
+                            aria-pressed={styleFilter.has(s)}
+                            onClick={() =>
+                              setStyleFilter((cur) => {
+                                const next = new Set(cur);
+                                if (next.has(s)) next.delete(s);
+                                else next.add(s);
+                                return next;
+                              })
+                            }
+                            className={`rounded-[3px] border px-2 py-0.5 text-xs transition ${
+                              styleFilter.has(s)
+                                ? "border-accent bg-accent/10 text-ink"
+                                : "border-edge text-ink-faint hover:text-ink-dim"
+                            }`}
+                          >
+                            {s}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {/* Share lives here too so it's reachable on mobile (the
+                        sidebar copy is desktop-only). */}
+                    <button
+                      type="button"
+                      onClick={copyShareLink}
+                      className="rounded-[3px] border border-edge bg-well px-2.5 py-0.5 text-xs text-ink-dim transition hover:border-accent hover:text-ink"
+                    >
+                      {linkCopied ? "Copied ✓" : "⊕ Share results"}
+                    </button>
+                  </div>
                 </div>
                 {refineNote && (
                   <p

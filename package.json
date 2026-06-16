@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@vercel/analytics": "^2.0.1",
     "ai": "^6.0.198",
     "botid": "^1.5.11",
     "next": "16.2.7",

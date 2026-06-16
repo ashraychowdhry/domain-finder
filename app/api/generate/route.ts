@@ -1,6 +1,7 @@
 import { generateObject } from "ai";
 import { z } from "zod";
 import { checkBotId } from "botid/server";
+import { spendGuard } from "@/lib/ratelimit";
 import { logUsage, modelErrorMessage, NAMING_MODEL } from "@/lib/model";
 import {
   buildFirstPrompt,
@@ -92,6 +93,9 @@ export async function POST(req: Request) {
   if (verification.isBot) {
     return Response.json({ error: "Automated traffic blocked." }, { status: 403 });
   }
+  // ~20 generate runs / 10 min / IP: way above any real session, blocks spam.
+  const limited = spendGuard(req, "gen", 20);
+  if (limited) return limited;
 
   let raw: unknown;
   try {
