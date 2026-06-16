@@ -51,6 +51,22 @@ html {
   }
 }
 
+/* Indeterminate progress bar — a sweeping pip that signals "still working"
+   during the 20-60s generate. Reduced-motion users get a static bar. */
+@keyframes vocari-indeterminate {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(330%);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .animate-indeterminate {
+    animation: vocari-indeterminate 1.15s ease-in-out infinite;
+  }
+}
+
 body {
   background: var(--color-bg);
   color: var(--color-ink);

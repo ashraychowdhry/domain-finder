@@ -204,6 +204,7 @@ export default function Finder() {
   const [showOptions, setShowOptions] = useState(false);
 
   const [loading, setLoading] = useState(false);
+  const [elapsed, setElapsed] = useState(0);
   const [timeline, setTimeline] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [graph, setGraph] = useState<KeywordGraph | null>(null);
@@ -283,6 +284,18 @@ export default function Finder() {
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  // Tick an elapsed-seconds counter while generating, so a long wait visibly
+  // counts up (reassures the user the page isn't frozen).
+  useEffect(() => {
+    if (!loading) return;
+    const t0 = Date.now();
+    const id = setInterval(
+      () => setElapsed(Math.floor((Date.now() - t0) / 1000)),
+      1000,
+    );
+    return () => clearInterval(id);
+  }, [loading]);
+
   const updateShortlist = (list: ShortlistEntry[]) => {
     setShortlist(list);
     saveShortlist(list);
@@ -352,6 +365,7 @@ export default function Finder() {
       return;
     }
     setLoading(true);
+    setElapsed(0);
     setError(null);
     setIdeas([]);
     setGraph(null);
@@ -716,8 +730,15 @@ export default function Finder() {
                 <span className="text-accent-ink">{showOptions ? "−" : "+"}</span>
               </button>
 
-              {showOptions && (
-                <div className="space-y-5">
+              <div
+                className={`grid transition-all duration-300 ease-out motion-reduce:transition-none ${
+                  showOptions
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="overflow-hidden" inert={!showOptions}>
+                  <div className="space-y-5 pt-5">
               <div className="grid gap-4 sm:grid-cols-2">
                 <TagInput
                   label="Keywords"
@@ -874,8 +895,9 @@ export default function Finder() {
                   className="mt-1.5 w-full rounded-[3px] border border-edge bg-well p-2.5 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent"
                 />
               </label>
+                  </div>
                 </div>
-              )}
+              </div>
 
               {error && (
                 <p role="alert" className="text-sm text-bad">
@@ -900,23 +922,50 @@ export default function Finder() {
             {(loading || (timeline.length > 0 && !done)) && (
               <div
                 role="status"
-                className="mt-8 space-y-1 rounded-[4px] border border-edge bg-well p-4 text-sm"
+                aria-live="polite"
+                className="mt-8 scroll-mt-20 rounded-[4px] border border-edge bg-well p-4 text-sm"
               >
-                {timeline.map((msg, i) => {
-                  const active = i === timeline.length - 1 && loading;
-                  return (
-                    <p
-                      key={i}
-                      className={active ? "text-ink" : "text-ink-faint"}
-                    >
-                      <span className={active ? "text-accent-ink" : "text-ok"}>
-                        {active ? "›" : "✓"}
-                      </span>{" "}
-                      {msg}
-                      {active && <span className="animate-pulse">▮</span>}
-                    </p>
-                  );
-                })}
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
+                    {loading ? "Forging your names…" : "Done"}
+                  </span>
+                  <span className="font-mono text-xs tabular-nums text-ink-faint">
+                    {elapsed}s{loading ? "" : " · finished"}
+                  </span>
+                </div>
+
+                {/* Indeterminate bar — always moving, so a long wait (or a
+                    rate-limit pause) never looks frozen. */}
+                {loading && (
+                  <div className="relative mt-2 h-1 w-full overflow-hidden rounded-full bg-edge">
+                    <div className="animate-indeterminate absolute inset-y-0 left-0 w-1/3 rounded-full bg-accent" />
+                  </div>
+                )}
+
+                <div className="mt-3 space-y-1">
+                  {timeline.map((msg, i) => {
+                    const active = i === timeline.length - 1 && loading;
+                    return (
+                      <p
+                        key={i}
+                        className={active ? "text-ink" : "text-ink-faint"}
+                      >
+                        <span className={active ? "text-accent-ink" : "text-ok"}>
+                          {active ? "›" : "✓"}
+                        </span>{" "}
+                        {msg}
+                        {active && <span className="animate-pulse">▮</span>}
+                      </p>
+                    );
+                  })}
+                </div>
+
+                {loading && elapsed >= 12 && (
+                  <p className="mt-2 text-xs text-ink-faint">
+                    Good names take a moment — checking live availability across
+                    the registries. Hang tight.
+                  </p>
+                )}
               </div>
             )}
 
