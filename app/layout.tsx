@@ -10,8 +10,9 @@ const geistMono = Geist_Mono({
 });
 
 const SITE = "https://vocari.dev";
+// Kept under ~155 chars so Google shows the full snippet without truncating.
 const DESCRIPTION =
-  "Vocari is a free AI domain name generator for developers and founders. Describe your idea and get brandable, available domain names — checked live against the registries, with SEO and brand-collision screening.";
+  "Free AI domain name generator for developers and founders — describe your idea and get brandable, available domains, checked live against the registries.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
