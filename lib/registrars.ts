@@ -86,8 +86,8 @@ export function nextSteps(): NextStep[] {
   const steps: NextStep[] = [
     {
       label: "Design a logo",
-      name: "Looka",
-      href: wrap(process.env.NEXT_PUBLIC_AFF_LOOKA, "https://looka.com/"),
+      name: "LogoAI",
+      href: wrap(process.env.NEXT_PUBLIC_AFF_LOGOAI, "https://www.logoai.com/"),
     },
     {
       label: "Form an LLC",

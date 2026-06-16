@@ -79,7 +79,7 @@ npm run dev                  # http://localhost:3000
 | `NEXT_PUBLIC_AFF_NAMECHEAP` | no | Same, for the Namecheap compare link |
 | `NEXT_PUBLIC_AFF_DYNADOT` | no | Same, for the Dynadot compare link |
 | `NEXT_PUBLIC_DEPLOY_AFF_URL` (+`_LABEL`) | no | "Deploy it" next-step link (e.g. Railway referral) |
-| `NEXT_PUBLIC_AFF_LOOKA` | no | "Design a logo" next-step link (Looka, PartnerStack) |
+| `NEXT_PUBLIC_AFF_LOGOAI` | no | "Design a logo" next-step link (LogoAI in-house — instant approval) |
 | `NEXT_PUBLIC_AFF_NORTHWEST` | no | "Form an LLC" next-step link (Northwest, Awin/ShareASale) |
 | `NEXT_PUBLIC_AFF_TRADEMARK` | no | "File a trademark" next-step link (Trademark Engine) |
 
