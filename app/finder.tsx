@@ -512,7 +512,7 @@ export default function Finder() {
               voc<span className="text-accent-ink">ari</span>
             </span>
             <span className="hidden rounded-[3px] border border-edge bg-chip px-1.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-ink-faint sm:inline">
-              v2.0-stable
+              v0.9.0-beta
             </span>
           </a>
           <span
