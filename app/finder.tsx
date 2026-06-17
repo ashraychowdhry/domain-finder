@@ -25,7 +25,7 @@ import {
 import { CheckName } from "./components/check-name";
 import { capture } from "./components/capture";
 import { encodeResults, decodeResults } from "./components/share";
-import { nextSteps } from "@/lib/registrars";
+import { emailCheckout, nextSteps } from "@/lib/registrars";
 
 interface SharedResults {
   graph: KeywordGraph;
@@ -541,6 +541,8 @@ export default function Finder() {
     ? ideas.filter((i) => styleFilter.has(i.style))
     : ideas;
   const usedStyles = [...new Set(ideas.map((i) => i.style))];
+  // The top available domain — personalizes the email upsell ("@thatdomain").
+  const topDomain = ideas.find((i) => i.bestAvailable)?.bestAvailable;
   // Only surface a status pip when something is happening — an idle "READY"
   // dot reads as "unfinished" to a first-time visitor.
   const status = loading
@@ -1128,6 +1130,47 @@ export default function Finder() {
                   <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-ink-dim">
                     Now that you&apos;ve named it
                   </p>
+
+                  {/* Lead with professional email — highest-intent moment and
+                      the best-paying next step. Personalized to the top domain. */}
+                  <a
+                    href={emailCheckout().href}
+                    target="_blank"
+                    rel="noopener noreferrer sponsored"
+                    onClick={() =>
+                      capture("email_cta_click", {
+                        placement: "funnel",
+                        domain: topDomain ?? "",
+                      })
+                    }
+                    className="group mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[3px] border border-accent/40 bg-accent/10 px-4 py-3 transition hover:border-accent"
+                  >
+                    <span className="flex items-center gap-2 text-sm text-ink">
+                      <span aria-hidden="true" className="text-accent-ink">
+                        ✉
+                      </span>
+                      <span>
+                        Get professional email
+                        {topDomain ? (
+                          <>
+                            {" "}
+                            <span className="font-semibold">
+                              @{topDomain}
+                            </span>
+                          </>
+                        ) : (
+                          " at your domain"
+                        )}
+                        <span className="ml-1 text-ink-faint">
+                          — from $0.59/mo
+                        </span>
+                      </span>
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-ink">
+                      Spacemail ▸
+                    </span>
+                  </a>
+
                   <div className="mt-3 flex flex-wrap gap-2">
                     {nextSteps().map((s) => (
                       <a

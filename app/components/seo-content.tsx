@@ -3,7 +3,14 @@
 // for rich results. No "use client" — stays out of the client bundle and is
 // always present in the server HTML.
 
-const STEPS: { n: string; title: string; body: string }[] = [
+import { emailCheckout } from "@/lib/registrars";
+
+const STEPS: {
+  n: string;
+  title: string;
+  body: string;
+  cta?: { label: string; href: string };
+}[] = [
   {
     n: "01",
     title: "Describe what you're building",
@@ -21,8 +28,9 @@ const STEPS: { n: string; title: string; body: string }[] = [
   },
   {
     n: "04",
-    title: "Register it",
-    body: "Click any available domain to register it at your chosen registrar, compare prices, or shortlist it and re-check availability later.",
+    title: "Register it — then get email to match",
+    body: "Click any available domain to register it at your chosen registrar, compare prices, or shortlist it and re-check later. Then set up professional email at your new domain (you@yourname.com) so your brand looks the part from day one.",
+    cta: { label: "Get professional email →", href: emailCheckout().href },
   },
 ];
 
@@ -50,6 +58,10 @@ const FAQ: { q: string; a: string }[] = [
   {
     q: "Can I check a domain name I already have in mind?",
     a: "Yes. Use the “Check domain” box at the top to instantly check any name across all supported extensions, with no AI generation needed.",
+  },
+  {
+    q: "Can I get professional email at my own domain?",
+    a: "Yes. Once you register a domain you can add professional email (you@yourname.com) at your registrar. Vocari links each available name straight to Spaceship's Spacemail, which adds custom-domain email with encryption, a calendar, and one-tap DNS setup from $0.59/mo — so your brand has a matching inbox from day one.",
   },
   {
     q: "Does Vocari check for trademark or brand conflicts?",
@@ -89,6 +101,16 @@ export function SeoContent() {
               <div className="font-mono text-xs text-accent-ink">{s.n}</div>
               <h3 className="mt-1 text-sm font-semibold text-ink">{s.title}</h3>
               <p className="mt-1 text-sm text-ink-dim">{s.body}</p>
+              {s.cta && (
+                <a
+                  href={s.cta.href}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  className="mt-2 inline-block text-xs font-semibold text-accent-ink transition hover:text-accent-hi"
+                >
+                  {s.cta.label}
+                </a>
+              )}
             </li>
           ))}
         </ol>

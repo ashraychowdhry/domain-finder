@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import type { CheckResponse, DomainResult } from "@/lib/types";
-import { primaryCheckout } from "@/lib/registrars";
+import { emailCheckout, primaryCheckout } from "@/lib/registrars";
 import { StatusBadge } from "./idea-card";
 import { capture } from "./capture";
 
@@ -108,6 +108,13 @@ export function CheckName({ tlds }: { tlds: string[] }) {
                     href={primaryCheckout(r.domain).href}
                     target="_blank"
                     rel="noopener noreferrer sponsored"
+                    onClick={() =>
+                      capture("idea_registrar_click", {
+                        domain: r.domain,
+                        style: "check",
+                        rank: 0,
+                      })
+                    }
                   >
                     <StatusBadge
                       status={r.status}
@@ -126,6 +133,17 @@ export function CheckName({ tlds }: { tlds: string[] }) {
                 ),
               )}
             </div>
+          )}
+          {results?.some((r) => r.status === "available") && (
+            <a
+              href={emailCheckout().href}
+              target="_blank"
+              rel="noopener noreferrer sponsored"
+              onClick={() => capture("email_cta_click", { placement: "check" })}
+              className="mt-2 block text-xs text-ink-faint transition hover:text-accent-ink"
+            >
+              ✉ Get professional email at your new domain →
+            </a>
           )}
         </div>
       )}

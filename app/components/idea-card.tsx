@@ -9,7 +9,7 @@ import type {
   RankedIdea,
   TldPrice,
 } from "@/lib/types";
-import { compareLinks, primaryCheckout } from "@/lib/registrars";
+import { compareLinks, emailCheckout, primaryCheckout } from "@/lib/registrars";
 import { capture } from "./capture";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: "500" });
@@ -371,6 +371,25 @@ export function IdeaCard({
           />
         ))}
       </div>
+
+      {idea.bestAvailable && (
+        <a
+          href={emailCheckout().href}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          onClick={() =>
+            capture("email_cta_click", {
+              placement: "card",
+              domain: idea.bestAvailable!,
+            })
+          }
+          className="mt-2 inline-flex items-center gap-1.5 text-xs text-ink-faint transition hover:text-accent-ink"
+        >
+          <span aria-hidden="true">✉</span>
+          Get professional email{" "}
+          <span className="text-ink-dim">@{idea.bestAvailable}</span> →
+        </a>
+      )}
 
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-faint">
         <span>{whyParts.join(" · ")}</span>

@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import type { CheckResponse } from "@/lib/types";
+import { emailCheckout, primaryCheckout } from "@/lib/registrars";
 import { StatusBadge } from "./idea-card";
+import { capture } from "./capture";
 
 export interface ShortlistEntry {
   name: string;
@@ -115,29 +117,70 @@ export function ShortlistPanel({
         </div>
       </div>
       <ul className="mt-3 space-y-2">
-        {list.map((e) => (
-          <li key={e.domain} className="flex flex-wrap items-center gap-2 text-sm">
+        {list.map((e) => {
+          // A shortlisted name was available when starred — keep it a live
+          // checkout link unless a re-check has since confirmed it taken.
+          const linkable = e.status !== "taken";
+          const badge = (
             <StatusBadge
               status={e.status ?? "unknown"}
               domain={e.domain}
               source={e.source}
             />
-            <span className="text-ink-dim">{e.backstory}</span>
-            {e.checkedAt && (
-              <span className="text-xs text-ink-faint">
-                checked {new Date(e.checkedAt).toLocaleTimeString()}
-              </span>
-            )}
-            <button
-              type="button"
-              onClick={() => onRemove(e.domain)}
-              aria-label={`Remove ${e.domain} from shortlist`}
-              className="text-ink-faint transition hover:text-ink"
+          );
+          return (
+            <li
+              key={e.domain}
+              className="flex flex-wrap items-center gap-2 text-sm"
             >
-              ×
-            </button>
-          </li>
-        ))}
+              {linkable ? (
+                <a
+                  href={primaryCheckout(e.domain).href}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() =>
+                    capture("shortlist_registrar_click", { domain: e.domain })
+                  }
+                >
+                  {badge}
+                </a>
+              ) : (
+                badge
+              )}
+              <span className="text-ink-dim">{e.backstory}</span>
+              {e.checkedAt && (
+                <span className="text-xs text-ink-faint">
+                  checked {new Date(e.checkedAt).toLocaleTimeString()}
+                </span>
+              )}
+              {linkable && (
+                <a
+                  href={emailCheckout().href}
+                  target="_blank"
+                  rel="noopener noreferrer sponsored"
+                  onClick={() =>
+                    capture("email_cta_click", {
+                      placement: "shortlist",
+                      domain: e.domain,
+                    })
+                  }
+                  className="text-xs text-ink-faint transition hover:text-accent-ink"
+                  title={`Set up professional email @${e.domain}`}
+                >
+                  ✉ email
+                </a>
+              )}
+              <button
+                type="button"
+                onClick={() => onRemove(e.domain)}
+                aria-label={`Remove ${e.domain} from shortlist`}
+                className="ml-auto text-ink-faint transition hover:text-ink"
+              >
+                ×
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </section>
   );

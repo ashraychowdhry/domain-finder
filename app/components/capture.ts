@@ -11,6 +11,8 @@ export type CaptureEvent =
   | "idea_analyzed"
   | "name_checked"
   | "next_step_click"
+  | "email_cta_click"
+  | "shortlist_registrar_click"
   | "zero_results";
 
 function sid(): string {

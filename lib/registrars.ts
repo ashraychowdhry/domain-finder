@@ -4,9 +4,17 @@
 // links, not raw query params. Each slot takes an optional NEXT_PUBLIC_AFF_*
 // template containing "{url}" (the encoded deep link); when unset, links go
 // direct, so the product works identically before/after program approval.
-// Porkbun's affiliate program is discontinued — Spaceship (25%+ program,
+// Porkbun's affiliate program is discontinued — Spaceship (one Impact program,
 // usually the cheapest .com) is the primary checkout; Porkbun stays as a
 // price-compare option. Commissions never change the user's price.
+//
+// Spaceship is LIVE: the partner tracking links below are baked in (account
+// 7412606, same as the Impact tag in layout.tsx) so revenue is captured on
+// deploy, and are env-overridable. Spaceship runs ONE program — Impact sets
+// the rate by what the referred customer buys: ~25% on domain registrations,
+// ~50% on email/Spacemail + hosting. We point each CTA at the matching
+// product creative (deep-linking confirmed enabled) so domain vs email report
+// separately; steering intent to email (see emailCheckout) earns roughly ~2x.
 
 export interface RegistrarLink {
   name: string;
@@ -27,12 +35,66 @@ const wrap = (template: string | undefined, url: string) =>
       ? template.replace("{url}", encodeURIComponent(url))
       : template;
 
-/** Where an available-domain badge sends the user. */
+// ── Spaceship (Impact) ──────────────────────────────────────────────────
+// Tracking links are /c/<account>/<adId>/<campaign>. Account 7412606 and
+// campaign 21274 (the media property) come from the issued link; the ad ID
+// selects the creative. We use the per-product ads that are confirmed
+// "Deeplinking: Supported" in the Impact dashboard:
+//   2873271 — "Search for a domain name"  → domain checkout (~25% tier)
+//   2386994 — "Spaceship Email Hosting"    → Spacemail / email (~50% tier)
+// Each base is a *bare* tracking link (no "{url}"); spaceship() appends the
+// encoded ?u= deep link. Override either via env to swap creatives/campaign.
+const SPACESHIP = "https://spaceship.sjv.io/c/7412606"; // + /<adId>/21274
+const SPACESHIP_DOMAIN_LINK =
+  process.env.NEXT_PUBLIC_AFF_SPACESHIP || `${SPACESHIP}/2873271/21274`;
+const SPACESHIP_EMAIL_LINK =
+  process.env.NEXT_PUBLIC_AFF_SPACESHIP_EMAIL || `${SPACESHIP}/2386994/21274`;
+
+// Deep-linking is enabled for these ads (verified) + spaceship.com is allow-
+// listed, so ?u=<encoded dest> lands on the exact page (domain search /
+// Spacemail) and attributes server-side at the redirect — surviving ad-blockers
+// that break the on-page tag. If that's ever turned off (a ?u= link would then
+// dead-end on a generic impact.com page), set NEXT_PUBLIC_AFF_SPACESHIP_DIRECT=1
+// to emit the raw spaceship.com link instead and let the on-page Impact tag
+// (transformLinks) attribute it, so a click never dead-ends.
+const SPACESHIP_DIRECT = process.env.NEXT_PUBLIC_AFF_SPACESHIP_DIRECT === "1";
+
+// Spacemail (business email) product page — #plans jumps straight to pricing
+// (from $0.59/mo).
+const SPACEMAIL_URL = "https://www.spaceship.com/business-email/#plans";
+
+/**
+ * Build a tracked Spaceship deep link from a base tracking link to `dest`.
+ * `subId1` tags the click in Impact reports and never affects payout. In
+ * DIRECT mode we return the raw destination so the page's Impact tag tracks it.
+ */
+function spaceship(base: string, dest: string, subId1: string): string {
+  if (SPACESHIP_DIRECT) return dest;
+  const sep = base.includes("?") ? "&" : "?";
+  // subId1 is a short literal; the destination is the LAST param and the only
+  // thing encoded — keeps the ?u= deep link correctly single-encoded.
+  return `${base}${sep}subId1=${subId1}&u=${encodeURIComponent(dest)}`;
+}
+
+/** Where an available-domain badge sends the user (~25% commission tier). */
 export function primaryCheckout(domain: string): RegistrarLink {
   const url = `https://www.spaceship.com/domain-search/?query=${domain}&tab=domains`;
   return {
     name: "Spaceship",
-    href: wrap(process.env.NEXT_PUBLIC_AFF_SPACESHIP, url),
+    href: spaceship(SPACESHIP_DOMAIN_LINK, url, "domain"),
+  };
+}
+
+/**
+ * The higher-commission upsell: professional email at the user's new domain
+ * (Spaceship's Spacemail, ~50% tier — roughly double the domain rate). Same
+ * Impact program as the domain checkout, on the email creative for clean
+ * reporting; Impact pays out on whatever the customer buys.
+ */
+export function emailCheckout(): RegistrarLink {
+  return {
+    name: "Spacemail",
+    href: spaceship(SPACESHIP_EMAIL_LINK, SPACEMAIL_URL, "email"),
   };
 }
 
