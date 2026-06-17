@@ -552,6 +552,16 @@ export default function Finder() {
       : null;
   const descLines = description.split("\n").length;
 
+  // Share button — one definition, rendered at two breakpoints (inline on ≥sm,
+  // full-width on mobile) so the action is reachable everywhere. The desktop
+  // sidebar copy is lg-only, so mobile relied on a tiny button that got buried
+  // under wrapping style chips; the full-width mobile variant fixes that.
+  const shareBtn = (className: string) => (
+    <button type="button" onClick={copyShareLink} className={className}>
+      {linkCopied ? "Copied ✓" : "⊕ Share results"}
+    </button>
+  );
+
   const navItems: { label: string; href: string; active: boolean }[] = [
     { label: "Brief", href: "#brief", active: true },
     { label: "Keyword graph", href: "#graph", active: Boolean(graph) },
@@ -580,7 +590,7 @@ export default function Finder() {
               ● {status[0]}
             </span>
           )}
-          <div className="ml-auto">
+          <div className="ml-auto flex min-w-0">
             <CheckName tlds={tlds} />
           </div>
         </div>
@@ -1069,17 +1079,19 @@ export default function Finder() {
                         ))}
                       </div>
                     )}
-                    {/* Share lives here too so it's reachable on mobile (the
-                        sidebar copy is desktop-only). */}
-                    <button
-                      type="button"
-                      onClick={copyShareLink}
-                      className="rounded-[3px] border border-edge bg-well px-2.5 py-0.5 text-xs text-ink-dim transition hover:border-accent hover:text-ink"
-                    >
-                      {linkCopied ? "Copied ✓" : "⊕ Share results"}
-                    </button>
+                    {/* Desktop/tablet: inline accent share button. On mobile a
+                        full-width version sits just below so it's never buried
+                        under wrapping style chips. */}
+                    {shareBtn(
+                      "hidden rounded-[3px] border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent-ink transition hover:border-accent sm:inline-flex",
+                    )}
                   </div>
                 </div>
+                {/* Mobile: prominent, full-width share so new mobile visitors
+                    can always find it (the sidebar + inline buttons are ≥sm). */}
+                {shareBtn(
+                  "mt-3 flex w-full items-center justify-center gap-1.5 rounded-[3px] border border-accent/40 bg-accent/10 py-2 text-sm font-medium text-accent-ink transition hover:border-accent sm:hidden",
+                )}
                 {refineNote && (
                   <p
                     role="status"

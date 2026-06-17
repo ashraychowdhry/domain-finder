@@ -50,8 +50,8 @@ export function CheckName({ tlds }: { tlds: string[] }) {
   };
 
   return (
-    <div className="relative flex items-center gap-2">
-      <div className="relative">
+    <div className="relative flex min-w-0 items-center gap-2">
+      <div className="relative min-w-0">
         <input
           value={name}
           onChange={(e) => {
@@ -67,7 +67,7 @@ export function CheckName({ tlds }: { tlds: string[] }) {
           }}
           placeholder="Already have a name? Check it…"
           aria-label="Check a domain you already have across .com .io .ai .app"
-          className="w-44 rounded-[3px] border border-edge bg-well py-1.5 pl-3 pr-7 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-64"
+          className="w-44 max-w-full min-w-0 rounded-[3px] border border-edge bg-well py-1.5 pl-3 pr-7 text-sm text-ink outline-none placeholder:text-ink-faint focus:border-accent sm:w-64"
         />
         {(name || results || err) && (
           <button

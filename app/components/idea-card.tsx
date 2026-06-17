@@ -372,6 +372,33 @@ export function IdeaCard({
         ))}
       </div>
 
+      {/* Primary action — Spaceship is the only monetized domain checkout, so
+          make it the unmistakable default click. The green chips above also go
+          to Spaceship; the small "compare:" links below stay secondary. */}
+      {idea.bestAvailable && (
+        <a
+          href={primaryCheckout(idea.bestAvailable).href}
+          target="_blank"
+          rel="noopener noreferrer sponsored"
+          onClick={() =>
+            capture("idea_registrar_click", {
+              domain: idea.bestAvailable!,
+              style: idea.style,
+              rank,
+              placement: "primary_cta",
+            })
+          }
+          className="mt-3 flex items-center justify-between gap-2 rounded-[3px] border border-accent bg-accent/15 px-4 py-2.5 text-sm font-semibold text-ink transition hover:bg-accent/25"
+        >
+          <span>
+            Register <span className="font-bold">{idea.bestAvailable}</span>
+          </span>
+          <span className="text-xs font-semibold uppercase tracking-[0.12em] text-accent-ink">
+            Spaceship ▸
+          </span>
+        </a>
+      )}
+
       {idea.bestAvailable && (
         <a
           href={emailCheckout().href}
