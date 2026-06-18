@@ -552,16 +552,6 @@ export default function Finder() {
       : null;
   const descLines = description.split("\n").length;
 
-  // Share button — one definition, rendered at two breakpoints (inline on ≥sm,
-  // full-width on mobile) so the action is reachable everywhere. The desktop
-  // sidebar copy is lg-only, so mobile relied on a tiny button that got buried
-  // under wrapping style chips; the full-width mobile variant fixes that.
-  const shareBtn = (className: string) => (
-    <button type="button" onClick={copyShareLink} className={className}>
-      {linkCopied ? "Copied ✓" : "⊕ Share results"}
-    </button>
-  );
-
   const navItems: { label: string; href: string; active: boolean }[] = [
     { label: "Brief", href: "#brief", active: true },
     { label: "Keyword graph", href: "#graph", active: Boolean(graph) },
@@ -590,7 +580,27 @@ export default function Finder() {
               ● {status[0]}
             </span>
           )}
-          <div className="ml-auto flex min-w-0">
+          <div className="ml-auto flex min-w-0 items-center gap-2">
+            {/* Persistent share on mobile/tablet (the desktop sidebar share is
+                lg-only) — always reachable from the sticky bar once results
+                exist, instead of buried at the top of the results list. */}
+            {ideas.length > 0 && (
+              <button
+                type="button"
+                onClick={copyShareLink}
+                aria-label={
+                  linkCopied
+                    ? "Share link copied"
+                    : "Copy share link for these results"
+                }
+                className="flex shrink-0 items-center gap-1.5 rounded-[3px] border border-accent/50 bg-accent/15 px-2.5 py-1.5 text-xs font-semibold text-accent-ink transition hover:border-accent hover:bg-accent/25 lg:hidden"
+              >
+                <span aria-hidden="true">{linkCopied ? "✓" : "⊕"}</span>
+                <span className="hidden sm:inline">
+                  {linkCopied ? "Copied" : "Share"}
+                </span>
+              </button>
+            )}
             <CheckName tlds={tlds} />
           </div>
         </div>
@@ -1079,19 +1089,8 @@ export default function Finder() {
                         ))}
                       </div>
                     )}
-                    {/* Desktop/tablet: inline accent share button. On mobile a
-                        full-width version sits just below so it's never buried
-                        under wrapping style chips. */}
-                    {shareBtn(
-                      "hidden rounded-[3px] border border-accent/40 bg-accent/10 px-2.5 py-1 text-xs font-medium text-accent-ink transition hover:border-accent sm:inline-flex",
-                    )}
                   </div>
                 </div>
-                {/* Mobile: prominent, full-width share so new mobile visitors
-                    can always find it (the sidebar + inline buttons are ≥sm). */}
-                {shareBtn(
-                  "mt-3 flex w-full items-center justify-center gap-1.5 rounded-[3px] border border-accent/40 bg-accent/10 py-2 text-sm font-medium text-accent-ink transition hover:border-accent sm:hidden",
-                )}
                 {refineNote && (
                   <p
                     role="status"
