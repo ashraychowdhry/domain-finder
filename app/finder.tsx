@@ -596,9 +596,7 @@ export default function Finder() {
                 className="flex shrink-0 items-center gap-1.5 rounded-[3px] border border-accent/50 bg-accent/15 px-2.5 py-1.5 text-xs font-semibold text-accent-ink transition hover:border-accent hover:bg-accent/25 lg:hidden"
               >
                 <span aria-hidden="true">{linkCopied ? "✓" : "⊕"}</span>
-                <span className="hidden sm:inline">
-                  {linkCopied ? "Copied" : "Share"}
-                </span>
+                <span>{linkCopied ? "Copied" : "Share"}</span>
               </button>
             )}
             <CheckName tlds={tlds} />

@@ -98,7 +98,14 @@ export function emailCheckout(): RegistrarLink {
   };
 }
 
-/** Secondary price-compare links. */
+// ── Dynadot (Ambassador) ────────────────────────────────────────────────
+// LIVE: Dynadot's Ambassador program tags referrals with query params on the
+// dynadot.com URL itself (no redirect wrapper). The referral ID is baked in
+// (override via NEXT_PUBLIC_AFF_DYNADOT) so the per-domain search link earns on
+// deploy; rscreg=<id> attributes domain registrations. Price never changes.
+const DYNADOT_AMBASSADOR = process.env.NEXT_PUBLIC_AFF_DYNADOT || "vocari";
+
+/** Secondary price-compare links. Dynadot is a live Ambassador referral. */
 export function compareLinks(domain: string): RegistrarLink[] {
   return [
     {
@@ -114,10 +121,7 @@ export function compareLinks(domain: string): RegistrarLink[] {
     },
     {
       name: "Dynadot",
-      href: wrap(
-        process.env.NEXT_PUBLIC_AFF_DYNADOT,
-        `https://www.dynadot.com/domain/search?domain=${domain}`,
-      ),
+      href: `https://www.dynadot.com/domain/search?domain=${domain}&rscreg=${DYNADOT_AMBASSADOR}`,
     },
   ];
 }
