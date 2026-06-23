@@ -517,7 +517,22 @@ export default function Finder() {
     try {
       const base = window.location.origin + window.location.pathname;
       const brief = runBrief.current;
-      const query = brief ? `?b=${encodeBrief(brief)}` : "";
+      // Server-readable top-3 available domains (+ total) so the shared link's
+      // OG card unfurls as the actual names — the #r= fragment is client-only.
+      const avail = ideas
+        .map((i) => i.bestAvailable)
+        .filter((d): d is string => Boolean(d));
+      const card = avail.length
+        ? `s=${encodeURIComponent(avail.slice(0, 3).join("|"))}&n=${avail.length}`
+        : "";
+      const query =
+        brief && card
+          ? `?b=${encodeBrief(brief)}&${card}`
+          : brief
+            ? `?b=${encodeBrief(brief)}`
+            : card
+              ? `?${card}`
+              : "";
       // Embed the actual results so the recipient sees them without re-running.
       let frag = "";
       if (ideas.length) {

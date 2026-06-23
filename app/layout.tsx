@@ -43,11 +43,15 @@ export const metadata: Metadata = {
     siteName: "Vocari",
     title: "Vocari — AI Domain Name Generator for Developers",
     description: DESCRIPTION,
+    images: [
+      { url: "/og", width: 1200, height: 630, alt: "Vocari — AI domain name generator" },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: "Vocari — AI Domain Name Generator for Developers",
     description: DESCRIPTION,
+    images: ["/og"],
   },
 };
 
