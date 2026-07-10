@@ -1,6 +1,12 @@
 // Client-side outcome telemetry — which names users actually click, star,
 // and analyze is the data that tunes the naming engine over time.
 // Anonymous (random browser id), fire-and-forget, never blocks UI.
+//
+// Two sinks: (1) Vercel Web Analytics custom events (free, no key — shows the
+// funnel in the Vercel dashboard), and (2) a beacon to /api/event (structured
+// logs today, PostHog if POSTHOG_KEY is ever set).
+
+import { track } from "@vercel/analytics";
 
 export type CaptureEvent =
   | "generate_submitted"
@@ -32,6 +38,12 @@ export function capture(
   event: CaptureEvent,
   props?: Record<string, string | number | boolean>,
 ) {
+  try {
+    // Vercel Web Analytics custom event → visible in the Vercel dashboard.
+    track(event, props);
+  } catch {
+    // analytics must never break the app
+  }
   try {
     const body = JSON.stringify({ event, sid: sid(), props });
     if (navigator.sendBeacon) {
