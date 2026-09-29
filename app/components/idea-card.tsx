@@ -81,12 +81,16 @@ function RiskChip({ idea }: { idea: RankedIdea }) {
             "text-bad border-bad/40",
             idea.topCollision ? `collides: ${idea.topCollision}` : "crowded",
           ];
+  const partial = idea.unchecked?.length
+    ? ` Not checked (lookup failed): ${idea.unchecked.join(", ")}.`
+    : "";
   return (
     <span
       className={`inline-flex items-center rounded-[3px] border bg-well px-2 py-0.5 text-xs ${cls}`}
-      title={`Collision risk ${r}/100${idea.topCollision ? ` — worst: ${idea.topCollision}` : ""} (screened against App Store, npm, PyPI, Wikipedia)`}
+      title={`Collision risk ${r}/100${idea.topCollision ? ` — worst: ${idea.topCollision}` : ""} (screened against App Store, npm, PyPI, Wikipedia).${partial}`}
     >
       {label}
+      {partial && <span className="ml-1 text-ink-faint">· partial</span>}
     </span>
   );
 }
@@ -168,6 +172,12 @@ function AnalyzePanel({
         )}
       </div>
       <p className="mt-1 text-ink-dim">{data.verdict}</p>
+      {data.uncheckedSources?.length ? (
+        <p className="mt-1 text-[11px] text-warn">
+          Couldn&apos;t check {data.uncheckedSources.join(", ")} right now
+          (rate-limited). Treat those as unknown, not clear.
+        </p>
+      ) : null}
 
       {data.collisions.length > 0 && (
         <div className="mt-2">

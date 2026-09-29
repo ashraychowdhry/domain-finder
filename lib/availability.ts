@@ -9,7 +9,7 @@
 //      unlike the shared rdap.org redirector at 10 req/10s — which also
 //      404s for TLDs it can't route, indistinguishable from "unregistered"):
 //      404 => unregistered => AVAILABLE. 200 => registered => TAKEN.
-//   3. Results are cached in-memory for 10 minutes (re-checks, refine calls,
+//   3. Definite results are cached in-memory for 10 minutes (re-checks, refine calls,
 //      and the shortlist re-check stay free of duplicate requests).
 //
 // The registrar at checkout is always the source of truth; this is a
@@ -170,8 +170,14 @@ export async function checkDomain(domain: string): Promise<DomainResult> {
           };
   }
 
-  if (cache.size >= CACHE_MAX) cache.clear();
-  cache.set(domain, { at: Date.now(), result });
+  // Only cache real answers — a failed check should be retried next time,
+  // not pinned as "unknown" for ten minutes.
+  if (result.status !== "unknown") {
+    if (cache.size >= CACHE_MAX) cache.clear();
+    cache.set(domain, { at: Date.now(), result });
+  } else {
+    console.warn(JSON.stringify({ t: "lookup_failed", source: "availability", key: domain }));
+  }
   return result;
 }
 

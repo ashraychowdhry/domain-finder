@@ -4,6 +4,7 @@ import { checkBotId } from "botid/server";
 import { spendGuard } from "@/lib/ratelimit";
 import { ANALYSIS_MODEL, logUsage, modelErrorMessage } from "@/lib/model";
 import { gatherCollisionSignals, type CollisionSignals } from "@/lib/collisions";
+import { SOURCE_LABELS } from "@/lib/lookup";
 import type { AnalyzeResponse } from "@/lib/types";
 
 export const maxDuration = 60;
@@ -126,6 +127,13 @@ function buildPrompt(
     );
   }
 
+  if (signals.unchecked.length) {
+    base.push(
+      "",
+      `NOT CHECKED — these lookups failed or were rate-limited, so their absence above means UNKNOWN, not clear: ${signals.unchecked.map((u) => SOURCE_LABELS[u]).join(", ")}. Say so in a con and lean on training knowledge for those sources.`,
+    );
+  }
+
   return base.join("\n");
 }
 
@@ -170,6 +178,9 @@ export async function POST(req: Request) {
       ...result.object,
       trademarkNote: result.object.trademarkNote || undefined,
       usedLiveSearch: signals.usedLiveWeb || signals.apps.length > 0,
+      ...(signals.unchecked.length
+        ? { uncheckedSources: signals.unchecked.map((u) => SOURCE_LABELS[u]) }
+        : {}),
     };
     return Response.json(body);
   } catch (err) {
