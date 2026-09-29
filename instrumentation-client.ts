@@ -9,5 +9,6 @@ initBotId({
     { path: "/api/refine", method: "POST" },
     { path: "/api/analyze", method: "POST" },
     { path: "/api/check", method: "POST" },
+    { path: "/api/presence", method: "POST" },
   ],
 });

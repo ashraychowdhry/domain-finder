@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx scripts/test-phonetics.ts && tsx scripts/test-confusables.ts && tsx scripts/test-brandsafety.ts"
+    "test": "tsx scripts/test-phonetics.ts && tsx scripts/test-confusables.ts && tsx scripts/test-brandsafety.ts && tsx scripts/test-presence.ts"
   },
   "dependencies": {
     "@vercel/analytics": "^2.0.1",

@@ -5,6 +5,7 @@ import type { CheckResponse, DomainResult } from "@/lib/types";
 import { emailCheckout, primaryCheckout } from "@/lib/registrars";
 import { StatusBadge } from "./idea-card";
 import { capture } from "./capture";
+import { PresencePanel } from "./presence-panel";
 
 /**
  * The highest-intent entry point in the category: "is the name in my head
@@ -144,6 +145,15 @@ export function CheckName({ tlds }: { tlds: string[] }) {
             >
               ✉ Get professional email at your new domain →
             </a>
+          )}
+          {results && (
+            <div className="max-w-md">
+              <PresencePanel
+                key={results[0]?.domain}
+                name={results[0]?.domain.split(".")[0] ?? name}
+                placement="check"
+              />
+            </div>
           )}
         </div>
       )}

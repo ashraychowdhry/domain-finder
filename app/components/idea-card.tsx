@@ -11,6 +11,7 @@ import type {
 } from "@/lib/types";
 import { compareLinks, emailCheckout, primaryCheckout } from "@/lib/registrars";
 import { capture } from "./capture";
+import { PresencePanel } from "./presence-panel";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], weight: "500" });
 const fraunces = Fraunces({ subsets: ["latin"], weight: "500" });
@@ -458,6 +459,7 @@ export function IdeaCard({
         )}
       </div>
 
+      <PresencePanel name={idea.name} placement="card" />
       <AnalyzePanel idea={idea} product={product} />
     </li>
   );
