@@ -3,7 +3,9 @@
 // for rich results. No "use client" — stays out of the client bundle and is
 // always present in the server HTML.
 
+import Link from "next/link";
 import { emailCheckout } from "@/lib/registrars";
+import { COMPARE_PAGES, NAME_PAGES } from "@/lib/seo-pages";
 
 const STEPS: {
   n: string;
@@ -65,7 +67,7 @@ const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Does Vocari check for trademark or brand conflicts?",
-    a: "It screens each name against the iTunes App Store, npm, PyPI, Wikipedia and the open web, flags collisions by severity, and links to a prefilled USPTO trademark search. It is a strong first-pass signal, not legal clearance.",
+    a: "It screens each name against the iTunes App Store, npm, PyPI, Wikipedia and the open web, flags collisions by severity, and each name has a handles & trademarks panel that checks GitHub, npm, Docker Hub, Bluesky and other handles and screens US trademarks. It is a strong first-pass signal, not legal clearance.",
   },
 ];
 
@@ -127,7 +129,39 @@ export function SeoContent() {
           ))}
         </dl>
 
-        <footer className="mt-12 flex flex-wrap items-center justify-between gap-2 border-t border-edge pt-6 text-xs text-ink-faint">
+        <nav
+          aria-label="Naming guides"
+          className="mt-12 border-t border-edge pt-6 text-xs text-ink-faint"
+        >
+          <p className="font-semibold uppercase tracking-[0.15em]">Naming guides</p>
+          <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {NAME_PAGES.map((p) => (
+              <Link
+                key={p.slug}
+                href={`/names/${p.slug}`}
+                className="underline decoration-edge hover:text-ink-dim"
+              >
+                {p.h1}
+              </Link>
+            ))}
+          </p>
+          <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1">
+            {COMPARE_PAGES.map((c) => (
+              <Link
+                key={c.slug}
+                href={`/compare/${c.slug}`}
+                className="underline decoration-edge hover:text-ink-dim"
+              >
+                {c.h1}
+              </Link>
+            ))}
+            <Link href="/graveyard" className="underline decoration-edge hover:text-ink-dim">
+              The Startup Graveyard
+            </Link>
+          </p>
+        </nav>
+
+        <footer className="mt-6 flex flex-wrap items-center justify-between gap-2 border-t border-edge pt-6 text-xs text-ink-faint">
           <span>
             voc<span className="text-accent-ink">ari</span> — free AI domain
             name generator
