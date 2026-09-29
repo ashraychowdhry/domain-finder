@@ -16,6 +16,7 @@ const eventSchema = z.object({
     "idea_starred",
     "idea_analyzed",
     "name_checked",
+    "presence_checked",
     "next_step_click",
     "email_cta_click",
     "shortlist_registrar_click",
