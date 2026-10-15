@@ -13,6 +13,7 @@ import {
 } from "@/lib/naming";
 import { judgeIdeas } from "@/lib/judge";
 import { screenNames } from "@/lib/screen";
+import { SOURCE_LABELS } from "@/lib/lookup";
 import { getTldPricing } from "@/lib/pricing";
 import { DEFAULT_TLDS } from "@/lib/tlds";
 import type {
@@ -284,6 +285,19 @@ async function runPipeline(
       msg: "Screening against the App Store, npm, PyPI & Wikipedia…",
     });
     const signals = await screenNames(field.map((i) => i.name));
+    const gaps = new Set<string>();
+    for (const idea of field) {
+      const unchecked = signals.get(idea.name)?.unchecked ?? [];
+      if (!unchecked.length) continue;
+      idea.unchecked = unchecked.map((u) => SOURCE_LABELS[u]);
+      idea.unchecked.forEach((u) => gaps.add(u));
+    }
+    if (gaps.size) {
+      send({
+        type: "status",
+        msg: `Couldn't reach ${[...gaps].join(", ")} for some names (rate-limited) — marked as partial checks.`,
+      });
+    }
 
     send({ type: "status", msg: "Judging the field…" });
     const verdicts = await judgeIdeas(input, field, signals, async () => {

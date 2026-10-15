@@ -96,6 +96,8 @@ export interface RankedIdea extends NameIdea {
   critique?: string;
   /** Judge's forced ranking position (1 = best). */
   judgeRank?: number;
+  /** Collision sources that couldn't be checked for this name (e.g. "App Store"). */
+  unchecked?: string[];
 }
 
 /** Registration / renewal price for a TLD (USD, registrar list price). */
@@ -162,4 +164,6 @@ export interface AnalyzeResponse {
   trademarkNote?: string;
   /** Whether live web search was used (vs. model knowledge only). */
   usedLiveSearch: boolean;
+  /** Sources that failed or were rate-limited (e.g. "App Store"). */
+  uncheckedSources?: string[];
 }
