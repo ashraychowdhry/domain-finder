@@ -74,6 +74,8 @@ npm run dev                  # http://localhost:3000
 |---|---|---|
 | — (OIDC) | auto | AI Gateway auth on Vercel; locally via `vercel env pull` |
 | `SERPER_API_KEY` | no | Upgrades the analyze web SERP to Google (serper.dev free tier) |
+| `MARKER_API_USERNAME` + `MARKER_API_PASSWORD` | no | Live USPTO trademark hits in the "Handles & trademarks" panel (markerapi.com free account); without them the panel links to USPTO/TMview/WIPO |
+| `GITHUB_TOKEN` | no | Any fine-grained token with no scopes; lifts the GitHub handle check from 60 to 5,000 lookups/hour |
 | `POSTHOG_KEY` | no | Forwards outcome telemetry to PostHog (free tier) — see `docs/data-strategy.md` |
 | `NEXT_PUBLIC_AFF_SPACESHIP` | no | Override for the Spaceship **domain** Impact base tracking link (live default: ad `2873271`) |
 | `NEXT_PUBLIC_AFF_SPACESHIP_EMAIL` | no | Override for the Spaceship **Spacemail/email** base tracking link (live default: ad `2386994`, the higher-paying ~50% creative) |
@@ -112,6 +114,7 @@ app/
   api/refine/route.ts       # graph-steered / more-like-this rounds
   api/check/route.ts        # instant name×TLD check + shortlist re-check
   api/analyze/route.ts      # category-aware SEO/collision deep-dive (+ USPTO link)
+  api/presence/route.ts     # handles (GitHub, npm, Docker, GitLab, Bluesky, HN, crates) + USPTO marks
   api/pricing/route.ts      # cached Porkbun TLD prices
   api/event/route.ts        # anonymous outcome telemetry (PostHog-ready)
 lib/
@@ -124,6 +127,7 @@ lib/
   brandsafety.ts            # multilingual embedded-profanity flag (pure TS)
   collisions.ts / search.ts # per-name analyze signals (+ optional serper)
   pricing.ts                # Porkbun catalog, daily module cache
+  presence.ts               # keyless handle checks + optional Marker API trademark search
 docs/data-strategy.md       # the proprietary-data accumulation plan
 scripts/                    # data builders + unit tests (npx tsx scripts/test-*.ts)
 ```
@@ -133,6 +137,9 @@ scripts/                    # data builders + unit tests (npx tsx scripts/test-*
 - "Available" = registerable at standard price. "Taken" domains on
   marketplace nameservers are labeled **for sale** (aftermarket premium).
 - Trademark notes are model knowledge, not clearance — every analyze links
-  to a prefilled USPTO search.
+  to a prefilled USPTO search. The "Handles & trademarks" panel lists live
+  USPTO marks when Marker API credentials are set; either way it's a screen,
+  not clearance. Handle lookups that are rate-limited show "couldn't check",
+  never "free".
 - The AI Gateway free tier rate-limits bursts; the UI surfaces a friendly
   retry message. Paid credits remove the limit (still ~3¢/run).
