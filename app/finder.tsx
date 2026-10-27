@@ -23,6 +23,7 @@ import {
   type ShortlistEntry,
 } from "./components/shortlist";
 import { CheckName } from "./components/check-name";
+import { WordScan } from "./components/word-scan";
 import { capture } from "./components/capture";
 import { encodeResults, decodeResults } from "./components/share";
 import { emailCheckout, nextSteps } from "@/lib/registrars";
@@ -572,6 +573,7 @@ export default function Finder() {
     { label: "Keyword graph", href: "#graph", active: Boolean(graph) },
     { label: "Results", href: "#results", active: ideas.length > 0 },
     { label: "Shortlist", href: "#shortlist", active: shortlist.length > 0 },
+    { label: "Word scan", href: "#word-scan", active: true },
     { label: "How it works / FAQ", href: "#how-it-works", active: true },
   ];
 
@@ -681,6 +683,13 @@ export default function Finder() {
                   className="text-accent-ink transition hover:text-accent-hi"
                 >
                   how it works ↓
+                </a>{" "}
+                ·{" "}
+                <a
+                  href="#word-scan"
+                  className="text-accent-ink transition hover:text-accent-hi"
+                >
+                  browse real words still free ↓
                 </a>
               </p>
 
@@ -1220,6 +1229,8 @@ export default function Finder() {
                 </div>
               </section>
             )}
+
+            <WordScan />
           </div>
         </main>
       </div>

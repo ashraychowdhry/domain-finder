@@ -16,24 +16,13 @@
 // fast, free signal good enough to filter candidates.
 
 import type { AvailabilityStatus, DomainResult } from "./types";
+import { RDAP_BASES } from "./scan/registries";
 
 const DOH_BASE = "https://dns.google/resolve";
 const UA = "Vocari/1.0 (domain availability checker)";
 
-// Registry RDAP bases per TLD, verified live (200 for registered,
-// 404 for unregistered).
-const RDAP_BASES: Record<string, string> = {
-  com: "https://rdap.verisign.com/com/v1/domain/",
-  net: "https://rdap.verisign.com/net/v1/domain/",
-  io: "https://rdap.identitydigital.services/rdap/domain/",
-  ai: "https://rdap.identitydigital.services/rdap/domain/",
-  me: "https://rdap.identitydigital.services/rdap/domain/",
-  app: "https://pubapi.registry.google/rdap/domain/",
-  dev: "https://pubapi.registry.google/rdap/domain/",
-  xyz: "https://rdap.centralnic.com/xyz/domain/",
-  so: "https://rdap.nic.so/domain/",
-  co: "https://rdap.registry.co/co/domain/",
-};
+// Registry RDAP bases per TLD — shared with the word scanner, which also
+// documents each registry's measured rate ceiling (lib/scan/registries.ts).
 
 // Nameservers used by parking/aftermarket services — a "taken" domain on
 // these is parked and very likely listed for sale at a premium.

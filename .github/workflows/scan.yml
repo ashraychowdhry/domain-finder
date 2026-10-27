@@ -1,0 +1,71 @@
+name: Word scan
+
+# Refreshes lib/data/scan/index.json — the vocabulary × TLD availability index
+# behind the "Word scan" section — then commits it and triggers the CI/CD
+# deploy. Free: GitHub Actions minutes + keyless DNS/RDAP; optional registrar
+# secrets add premium-price verification.
+on:
+  schedule:
+    - cron: "17 5 * * *" # daily 05:17 UTC (zone files refresh by 06:00; RDAP is live anyway)
+  workflow_dispatch:
+    inputs:
+      tlds:
+        description: "Comma-separated TLDs"
+        default: "ai,io,app,dev,xyz,co,me,so,com,net,org"
+      args:
+        description: "Extra scan flags"
+        default: "--min-len 3 --max-len 10 --min-zipf 3 --rdap-budget 400"
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: word-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Scan
+        env:
+          SPACESHIP_API_KEY: ${{ secrets.SPACESHIP_API_KEY }}
+          SPACESHIP_API_SECRET: ${{ secrets.SPACESHIP_API_SECRET }}
+          NAMECOM_USERNAME: ${{ secrets.NAMECOM_USERNAME }}
+          NAMECOM_TOKEN: ${{ secrets.NAMECOM_TOKEN }}
+          PORKBUN_API_KEY: ${{ secrets.PORKBUN_API_KEY }}
+          PORKBUN_SECRET_API_KEY: ${{ secrets.PORKBUN_SECRET_API_KEY }}
+        run: >
+          npm run scan --
+          --tlds "${{ github.event.inputs.tlds || 'ai,io,app,dev,xyz,co,me,so,com,net,org' }}"
+          ${{ github.event.inputs.args || '--min-len 3 --max-len 10 --min-zipf 3 --rdap-budget 400' }}
+          --print 15
+      - name: Commit index
+        id: commit
+        run: |
+          git config user.name "vocari-scan[bot]"
+          git config user.email "scan@vocari.dev"
+          git add lib/data/scan/index.json
+          if git diff --cached --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            git commit -m "chore(scan): refresh word-scan index"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+      # Vercel's Git integration deploys the new index from the push webhook,
+      # but pushes made with GITHUB_TOKEN fire no push *workflows*, so run the
+      # CI gate (lint → typecheck → test → build → audit) explicitly.
+      - name: Run CI gate
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run ci.yml --ref main
