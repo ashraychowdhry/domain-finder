@@ -4,6 +4,9 @@ on:
   push:
     branches: [main]
   pull_request:
+  # The word-scan job commits the refreshed index with GITHUB_TOKEN, which
+  # fires no push event, so it dispatches this gate explicitly.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}

@@ -20,7 +20,8 @@ export type CaptureEvent =
   | "next_step_click"
   | "email_cta_click"
   | "shortlist_registrar_click"
-  | "zero_results";
+  | "zero_results"
+  | "word_scan_verify";
 
 function sid(): string {
   try {

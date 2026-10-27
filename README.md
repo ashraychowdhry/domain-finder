@@ -41,6 +41,14 @@ search.
    localStorage shortlist with one-click re-check, shareable brief URLs,
    wordmark previews in three typefaces, registrar price compare (Porkbun
    pricing API, renewal-trap warnings).
+9. **Word scan** — the other direction: instead of inventing names, browse
+   real English words that are *still unregistered* under an extension,
+   filtered by length, rarity (Zipf frequency), regex pattern and
+   first-checkout budget. Backed by an offline index (`npm run scan`:
+   vocabulary → the TLD's authoritative DNS → the registry's RDAP → Porkbun
+   list price × minimum term → optional registrar premium check), refreshed
+   nightly by GitHub Actions, and re-verified live per row. Sources and the
+   measured rate ceilings are in `docs/domain-scan-sources.md`.
 
 ## Cost (designed to stay near-zero)
 
@@ -50,6 +58,7 @@ search.
 | Refine click | 1-2 rounds | $0.007–0.02 |
 | Deep-dive analyze | 1 | ~$0.004 |
 | Check a name / re-check shortlist | 0 | $0 |
+| Word scan browse / verify | 0 | $0 |
 
 Availability, collision signals, pricing: all keyless and free. Every model
 call logs `{t:"usage", label, tokens, estUsd}` — grep `vercel logs` for
@@ -70,6 +79,20 @@ vercel env pull .env.local   # gateway OIDC token for local dev
 npm run dev                  # http://localhost:3000
 ```
 
+Word scan index (committed; refresh whenever you like):
+
+```bash
+npm run build:words                                   # rebuild the vocabulary (two static downloads)
+npm run scan -- --tlds ai,io,app --max-len 8 --min-zipf 3.5 --max-cost 100
+```
+
+Flags: `--tlds`, `--min-len/--max-len`, `--min-zipf` (5 very common … 2.5 any
+real word), `--dict english|any`, `--pattern RE`, `--starts/--ends`,
+`--rdap-budget N` per registry, `--no-rdap`, `--no-prices`, `--max-cost N`
+(print filter), `--print N`, `--dry`. Note `.ai` has a registry-mandated
+2-year minimum, so its first checkout is ~$165 — "under $100" is empty for
+.ai at any registrar.
+
 | Env var | Required | Purpose |
 |---|---|---|
 | — (OIDC) | auto | AI Gateway auth on Vercel; locally via `vercel env pull` |
@@ -77,6 +100,7 @@ npm run dev                  # http://localhost:3000
 | `MARKER_API_USERNAME` + `MARKER_API_PASSWORD` | no | Live USPTO trademark hits in the "Handles & trademarks" panel (markerapi.com free account); without them the panel links to USPTO/TMview/WIPO |
 | `GITHUB_TOKEN` | no | Any fine-grained token with no scopes; lifts the GitHub handle check from 60 to 5,000 lookups/hour |
 | `POSTHOG_KEY` | no | Forwards outcome telemetry to PostHog (free tier) — see `docs/data-strategy.md` |
+| `SPACESHIP_API_KEY` + `_SECRET`, or `NAMECOM_USERNAME` + `NAMECOM_TOKEN`, or `PORKBUN_API_KEY` + `PORKBUN_SECRET_API_KEY` | no | Scanner only: verifies whether each unregistered word is a registry **premium** (no keyless source can). Free accounts; also set as repo secrets for the nightly workflow |
 | `NEXT_PUBLIC_AFF_SPACESHIP` | no | Override for the Spaceship **domain** Impact base tracking link (live default: ad `2873271`) |
 | `NEXT_PUBLIC_AFF_SPACESHIP_EMAIL` | no | Override for the Spaceship **Spacemail/email** base tracking link (live default: ad `2386994`, the higher-paying ~50% creative) |
 | `NEXT_PUBLIC_AFF_SPACESHIP_DIRECT` | no | Set `1` if your Impact program has deep-linking off / `spaceship.com` not allow-listed — emits the raw link (tag-tracked) instead of a `?u=` deep link, so clicks never dead-end |
@@ -116,6 +140,8 @@ app/
   api/analyze/route.ts      # category-aware SEO/collision deep-dive (+ USPTO link)
   api/presence/route.ts     # handles (GitHub, npm, Docker, GitLab, Bluesky, HN, crates) + USPTO marks
   api/pricing/route.ts      # cached Porkbun TLD prices
+  api/browse/route.ts       # Word scan: filters the committed scan index
+  components/word-scan.tsx  # Word scan UI (filters, live verify, register)
   api/event/route.ts        # anonymous outcome telemetry (PostHog-ready)
 lib/
   naming.ts                 # schemas, house-style prompts, vetting, scoring
@@ -128,8 +154,14 @@ lib/
   collisions.ts / search.ts # per-name analyze signals (+ optional serper)
   pricing.ts                # Porkbun catalog, daily module cache
   presence.ts               # keyless handle checks + optional Marker API trademark search
+  scan/                     # word scanner: words, dns(-auth), rdap, pricing, index
+  data/words.json           # 38k English words with Zipf frequency (build:words)
+  data/scan/index.json      # unregistered word×TLD index (npm run scan)
 docs/data-strategy.md       # the proprietary-data accumulation plan
+docs/domain-scan-sources.md # vetted data sources + measured registry rate limits
 scripts/                    # data builders + unit tests (npx tsx scripts/test-*.ts)
+  scan-domains.ts           # the scanner CLI (npm run scan -- --tlds ai --max-len 8)
+.github/workflows/scan.yml  # nightly index refresh → commit → deploy
 ```
 
 ## Notes
