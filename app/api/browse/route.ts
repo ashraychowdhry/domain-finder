@@ -25,6 +25,7 @@ const querySchema = z.object({
   dict: z.enum(["english", "any"]).optional(),
   includeLikely: z.enum(["0", "1"]).transform((v) => v === "1").optional(),
   premiumOk: z.enum(["0", "1"]).transform((v) => v === "1").optional(),
+  nsfw: z.enum(["0", "1"]).transform((v) => v === "1").optional(),
   sort: z.enum(["common", "rare", "short", "alpha", "price"]).optional(),
   limit: z.coerce.number().int().min(1).max(500).optional(),
   offset: z.coerce.number().int().min(0).max(100_000).optional(),

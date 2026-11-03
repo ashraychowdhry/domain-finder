@@ -15,6 +15,12 @@ export type PriceClass = "standard" | "premium" | "unavailable";
 
 export type PriceSource = "spaceship" | "namecom" | "porkbun";
 
+/**
+ * Why a word is NSFW (lib/data/nsfw.json). The Word scan hides all of these
+ * by default; "slur" stays hidden even when the user opts in.
+ */
+export type NsfwCategory = "sexual" | "profanity" | "slur" | "violence" | "drugs";
+
 export interface ScanEntry {
   /** Full domain, e.g. "solace.ai". */
   d: string;
@@ -36,7 +42,7 @@ export interface ScanEntry {
   price?: number;
   priceSrc?: PriceSource;
   priceAt?: number;
-  /** Soft warnings, e.g. "profanity". */
+  /** Legacy soft warnings from older scans; NSFW is now derived at query time. */
   flags?: string[];
 }
 
@@ -84,6 +90,8 @@ export interface BrowseQuery {
   includeLikely?: boolean;
   /** Include entries verified or suspected premium (default false). */
   premiumOk?: boolean;
+  /** Include NSFW words (default false). Slurs are never included. */
+  nsfw?: boolean;
   sort?: BrowseSort;
   limit?: number;
   offset?: number;
@@ -99,11 +107,15 @@ export interface BrowseRow extends ScanEntry {
   /** Porkbun renewal price per year at scan time (renewal-trap warning). */
   renew?: number;
   premiumRisk: PremiumRisk;
+  /** Set when the word is NSFW (only present on rows when nsfw=true was asked). */
+  nsfw?: NsfwCategory;
 }
 
 export interface BrowseResponse {
   rows: BrowseRow[];
   total: number;
+  /** Rows the NSFW filter removed that the user could reveal by opting in. */
+  nsfwHidden: number;
   tlds: Record<string, TldScanMeta>;
   updatedAt: number;
 }

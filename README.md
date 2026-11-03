@@ -47,8 +47,11 @@ search.
    first-checkout budget. Backed by an offline index (`npm run scan`:
    vocabulary → the TLD's authoritative DNS → the registry's RDAP → Porkbun
    list price × minimum term → optional registrar premium check), refreshed
-   nightly by GitHub Actions, and re-verified live per row. Sources and the
-   measured rate ceilings are in `docs/domain-scan-sources.md`.
+   nightly by GitHub Actions, and re-verified live per row. NSFW words
+   (sexual, profane, graphically violent, hard drugs) are hidden unless the
+   user ticks "show NSFW words"; slurs are never shown. Sources, the measured
+   rate ceilings and how the NSFW lexicon was built are in
+   `docs/domain-scan-sources.md`.
 
 ## Cost (designed to stay near-zero)
 
@@ -156,6 +159,7 @@ lib/
   presence.ts               # keyless handle checks + optional Marker API trademark search
   scan/                     # word scanner: words, dns(-auth), rdap, pricing, index
   data/words.json           # 38k English words with Zipf frequency (build:words)
+  data/nsfw.json            # whole-word NSFW lexicon over that vocabulary
   data/scan/index.json      # unregistered word×TLD index (npm run scan)
 docs/data-strategy.md       # the proprietary-data accumulation plan
 docs/domain-scan-sources.md # vetted data sources + measured registry rate limits

@@ -10,6 +10,7 @@ import type {
   ScanIndex,
 } from "./types";
 import { firstCost, premiumRisk } from "./pricing";
+import { ALWAYS_HIDDEN, nsfwCategory } from "./nsfw";
 
 export const INDEX_PATH = "lib/data/scan/index.json";
 
@@ -33,6 +34,7 @@ export function queryIndex(index: ScanIndex, q: BrowseQuery): BrowseResponse {
   const dictOnly = (q.dict ?? "english") === "english";
   const includeLikely = q.includeLikely ?? true;
   const premiumOk = q.premiumOk ?? false;
+  const nsfwOk = q.nsfw ?? false;
   let re: RegExp | null = null;
   if (q.pattern) {
     try {
@@ -43,6 +45,7 @@ export function queryIndex(index: ScanIndex, q: BrowseQuery): BrowseResponse {
   }
 
   const rows: BrowseRow[] = [];
+  let nsfwHidden = 0;
   for (const e of index.entries) {
     if (!tlds.has(e.tld)) continue;
     if (e.status === "taken") continue;
@@ -59,7 +62,21 @@ export function queryIndex(index: ScanIndex, q: BrowseQuery): BrowseResponse {
     const meta = index.tlds[e.tld];
     const cost = firstCost(e, meta?.reg);
     if (q.maxCost !== undefined && Number.isFinite(cost) && cost > q.maxCost) continue;
-    rows.push({ ...e, cost, minYears: meta?.minYears ?? 1, renew: meta?.renew, premiumRisk: risk });
+    // Last, so nsfwHidden counts only words that match every other filter.
+    const nsfw = nsfwCategory(e.w);
+    if (nsfw && ALWAYS_HIDDEN.has(nsfw)) continue;
+    if (nsfw && !nsfwOk) {
+      nsfwHidden++;
+      continue;
+    }
+    rows.push({
+      ...e,
+      cost,
+      minYears: meta?.minYears ?? 1,
+      renew: meta?.renew,
+      premiumRisk: risk,
+      ...(nsfw ? { nsfw } : {}),
+    });
   }
 
   const sort = q.sort ?? "common";
@@ -83,6 +100,7 @@ export function queryIndex(index: ScanIndex, q: BrowseQuery): BrowseResponse {
   return {
     rows: rows.slice(offset, offset + limit),
     total: rows.length,
+    nsfwHidden,
     tlds: index.tlds,
     updatedAt: index.updatedAt,
   };

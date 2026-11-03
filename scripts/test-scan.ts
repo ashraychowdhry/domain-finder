@@ -9,7 +9,10 @@ import { selectWords } from "../lib/scan/words";
 import { queryIndex, mergeTld, emptyIndex } from "../lib/scan/index";
 import { firstCost, premiumRisk } from "../lib/scan/pricing";
 import { minYears, rdapBase, hostPolicy } from "../lib/scan/registries";
-import type { ScanEntry } from "../lib/scan/types";
+import { ALWAYS_HIDDEN, NSFW_VOCAB_BUILT, nsfwCategory } from "../lib/scan/nsfw";
+import type { NsfwCategory, ScanEntry } from "../lib/scan/types";
+import vocabData from "../lib/data/words.json";
+import nsfwData from "../lib/data/nsfw.json";
 
 let passed = 0;
 let failed = 0;
@@ -80,6 +83,40 @@ check("pattern + limit + offset", queryIndex(idx, { tlds: ["ai"], pattern: ".*[e
 check("bad regex is ignored", queryIndex(idx, { tlds: ["ai"], pattern: "(" }).total, 2);
 check("mergeTld replaces a TLD's entries", mergeTld(idx, "ai", []).entries.length, 0);
 check("unknown TLD → empty", queryIndex(idx, { tlds: ["zz"] }).total, 0);
+
+// ── NSFW lexicon ──
+const vocab = new Set((vocabData as unknown as { words: [string, number, 0 | 1][] }).words.map((w) => w[0]));
+const lexicon = Object.entries(nsfwData.words) as [string, NsfwCategory][];
+const CATEGORIES: NsfwCategory[] = ["sexual", "profanity", "slur", "violence", "drugs"];
+check("lexicon reviewed against the current vocabulary build", NSFW_VOCAB_BUILT, (vocabData as { built: string }).built);
+check("every lexicon word is in the vocabulary", lexicon.filter(([w]) => !vocab.has(w)).map(([w]) => w), []);
+check("every lexicon category is known", lexicon.filter(([, c]) => !CATEGORIES.includes(c)).map(([w]) => w), []);
+check("whole-word match: breasts is sexual", nsfwCategory("breasts"), "sexual");
+check("case-insensitive lookup", nsfwCategory("Breasts"), "sexual");
+for (const safe of ["cucumber", "documented", "analysis", "cocktail", "assess", "classic", "therapist", "solace"]) {
+  check(`substring-only word '${safe}' is safe`, nsfwCategory(safe), undefined);
+}
+check("slurs are always hidden", ALWAYS_HIDDEN.has("slur"), true);
+// Pick a slur from the data rather than spelling one out in source.
+const slur = lexicon.find(([, c]) => c === "slur")?.[0];
+check("lexicon has at least one slur entry", typeof slur, "string");
+
+let nidx = emptyIndex();
+nidx = mergeTld(nidx, "ai", [
+  mk({ d: "solace.ai", w: "solace", z: 3.2 }),
+  mk({ d: "breasts.ai", w: "breasts", z: 3.3 }),
+  mk({ d: `${slur}.ai`, w: slur ?? "", z: 3.1 }),
+]);
+nidx.tlds.ai = idx.tlds.ai;
+const safeOnly = queryIndex(nidx, { tlds: ["ai"] });
+check("NSFW hidden by default", safeOnly.rows.map((r) => r.d), ["solace.ai"]);
+check("hidden count excludes always-hidden slurs", safeOnly.nsfwHidden, 1);
+const withNsfw = queryIndex(nidx, { tlds: ["ai"], nsfw: true });
+check("nsfw=true reveals NSFW words but never slurs", withNsfw.rows.map((r) => r.d), ["breasts.ai", "solace.ai"]);
+check("revealed rows carry their category", withNsfw.rows[0].nsfw, "sexual");
+check("safe rows carry no category", "nsfw" in withNsfw.rows[1], false);
+check("nothing counted as hidden when opted in", withNsfw.nsfwHidden, 0);
+check("hidden count respects other filters", queryIndex(nidx, { tlds: ["ai"], maxLen: 6 }).nsfwHidden, 0);
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

@@ -56,6 +56,8 @@ export function WordScan() {
   const [pattern, setPattern] = useState("");
   const [includeLikely, setIncludeLikely] = useState(true);
   const [premiumOk, setPremiumOk] = useState(false);
+  // NSFW words stay hidden until the user explicitly opts in.
+  const [nsfwOk, setNsfwOk] = useState(false);
   const [sort, setSort] = useState<BrowseSort>("common");
   const [limit, setLimit] = useState(PAGE);
 
@@ -79,6 +81,7 @@ export function WordScan() {
         minZipf: String(minZipf),
         includeLikely: includeLikely ? "1" : "0",
         premiumOk: premiumOk ? "1" : "0",
+        nsfw: nsfwOk ? "1" : "0",
         sort,
         limit: String(limit),
       });
@@ -107,7 +110,7 @@ export function WordScan() {
       }
     }, 250);
     return () => clearTimeout(t);
-  }, [tlds, minLen, maxLen, minZipf, maxCost, pattern, includeLikely, premiumOk, sort, limit]);
+  }, [tlds, minLen, maxLen, minZipf, maxCost, pattern, includeLikely, premiumOk, nsfwOk, sort, limit]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const scannedTlds = Object.keys(data?.tlds ?? {}).sort();
@@ -299,6 +302,18 @@ export function WordScan() {
               />
               show likely-premium names
             </label>
+            <label
+              className="flex items-center gap-1.5"
+              title="Sexual, profane, graphically violent and hard-drug words. Slurs are never shown."
+            >
+              <input
+                type="checkbox"
+                checked={nsfwOk}
+                onChange={(e) => setNsfwOk(e.target.checked)}
+                className="accent-accent"
+              />
+              show NSFW words
+            </label>
             <label className="ml-auto flex items-center gap-1.5">
               sort
               <select
@@ -322,6 +337,11 @@ export function WordScan() {
             {loading && !data
               ? "Loading…"
               : `${data?.total ?? 0} words${loading ? " — updating…" : ""}`}
+            {!nsfwOk && (data?.nsfwHidden ?? 0) > 0 && (
+              <span className="ml-2 font-normal normal-case tracking-normal text-ink-faint">
+                {data?.nsfwHidden} NSFW hidden
+              </span>
+            )}
             {scannedAt > 0 && (
               <span className="ml-2 font-normal normal-case tracking-normal text-ink-faint">
                 index scanned {new Date(scannedAt).toLocaleDateString()}
@@ -471,8 +491,13 @@ function Row({ row, live }: { row: BrowseRow; live?: DomainResult }) {
       {risk === "verified-standard" && (
         <span className="text-[10px] uppercase tracking-[0.12em] text-ok/80">standard ✓</span>
       )}
-      {row.flags?.includes("profanity") && (
-        <span className="text-[10px] uppercase tracking-[0.12em] text-bad/80">⚠ embedded word</span>
+      {row.nsfw && (
+        <span
+          className="rounded-[3px] border border-bad/40 bg-well px-1.5 py-0.5 text-[10px] uppercase tracking-[0.12em] text-bad/80"
+          title={`NSFW: ${row.nsfw}`}
+        >
+          nsfw
+        </span>
       )}
       {!liveTaken && (
         <span className="ml-auto flex items-center gap-2 text-xs">
