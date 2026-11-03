@@ -45,7 +45,7 @@ import {
 } from "../lib/scan/pricing";
 import { emptyIndex, INDEX_PATH, mergeTld } from "../lib/scan/index";
 import { getTldPricing } from "../lib/pricing";
-import { brandSafetyFlag } from "../lib/brandsafety";
+import { nsfwCategory } from "../lib/scan/nsfw";
 import type { ScanEntry, ScanIndex, TldScanMeta } from "../lib/scan/types";
 
 // ── args ────────────────────────────────────────────────────────────────
@@ -123,8 +123,11 @@ async function main() {
     const now = Date.now();
     const entries: ScanEntry[] = [];
     // Most common words first: they're the most valuable finds, so they get
-    // confirmed within the RDAP budget before rarer ones.
-    survivors.sort((a, b) => b.z - a.z);
+    // confirmed within the RDAP budget before rarer ones. NSFW words go last:
+    // the UI hides them by default, so they shouldn't spend scarce quota
+    // (Identity Digital allows ~120 confirmations a run).
+    const nsfwRank = (w: string) => (nsfwCategory(w) ? 1 : 0);
+    survivors.sort((a, b) => nsfwRank(a.w) - nsfwRank(b.w) || b.z - a.z);
     let confirmed = 0;
     let blockedAt: number | null = null;
     const base = rdapBase(tld);
@@ -143,8 +146,6 @@ async function main() {
         src: "dns",
         at: now,
       };
-      const bad = brandSafetyFlag(w.w);
-      if (bad) entry.flags = ["profanity"];
       // RDAP-confirmed "taken" names (registered without NS) stay taken.
       if (old?.src === "rdap" && old.status === "taken") {
         entries.push({ ...old, at: now });
@@ -233,7 +234,7 @@ async function main() {
               ? "premium?"
               : "";
       console.log(
-        `  ${e.d.padEnd(18)} ${status}  zipf ${e.z.toFixed(2)}  ${price}  ${riskTxt}${e.flags ? "  ⚠ " + e.flags.join(",") : ""}`,
+        `  ${e.d.padEnd(18)} ${status}  zipf ${e.z.toFixed(2)}  ${price}  ${riskTxt}${nsfwCategory(e.w) ? "  ⚠ nsfw:" + nsfwCategory(e.w) : ""}`,
       );
     }
     if (rows.length > printN) console.log(`  … ${rows.length - printN} more (see ${INDEX_PATH})`);

@@ -49,6 +49,52 @@ Plus 1,270 frequent non-dictionary tokens (miami, intel, davis) flagged
 (370k, full of junk), wordfreq (Python-only; Norvig covers the same need),
 Google-10k (8,109 of its 9,884 entries are already in ENABLE — a subset).
 
+### NSFW screen
+
+Common English words that are still unregistered skew adult: the first scan's
+top .app and .so results included breasts, blowjobs and cocks. The Word scan
+hides NSFW words unless the user opts in, and never shows slurs.
+
+The repo's existing profanity list (`lib/brandsafety.ts`) can't do this job.
+It substring-matches AI-coined names, so on real words it both missed most of
+them (breasts, porn, sex, nude, slut) and flagged innocent ones (documented,
+cumulative, cucumber, ecumenical). The Word scan uses a whole-word lexicon
+instead, `lib/data/nsfw.json`, applied at query time so it covers the existing
+index and every nightly refresh without a rescan.
+
+How the lexicon was built (2026-11-02, LLM-classified, 102 agents):
+
+1. The vocabulary was split into 16 alphabetical slices. Two finders read every
+   word of each slice: one focused on sexual content, one on profanity, slurs,
+   graphic violence and hard drugs.
+2. Each candidate went to three judges with different stances (cautious HR
+   reviewer, domain investor, over-filtering skeptic). A word was dropped only
+   when a majority said safe.
+3. Critics then hunted misses (inflections of flagged words; a 300-term sweep
+   per category), and a final recheck sent 431 unjudged probe and stem-sharing
+   words through the same panel. That recheck kept only 8, so recall was
+   already high.
+
+The test given to every agent: would a reasonable person be uncomfortable
+seeing `<word>.com` suggested on a coworker's screen, judged by the word's
+dominant reading. Deliberately **safe**: words whose innocent sense is at
+least as common (cocktail, balls, weed, crack), everyday crime and conflict
+words (kill, murder, gun), romance, clothing and swimwear (lingerie, thong,
+bikini), neutral medical terms, and legal drugs (viagra).
+
+| Category | Words | Default | With "show NSFW words" |
+|---|---|---|---|
+| sexual | 260 | hidden | shown, tagged |
+| profanity | 51 | hidden | shown, tagged |
+| violence (gore, sexual violence, self-harm) | 29 | hidden | shown, tagged |
+| drugs (hard drugs) | 6 | hidden | shown, tagged |
+| slur | 37 | hidden | **still hidden** |
+
+To change a call, edit the word's entry in `lib/data/nsfw.json`. The lexicon
+records the vocabulary build it was reviewed against, and `npm test` fails if
+`words.json` is rebuilt without reviewing the new words. The scanner also
+spends scarce RDAP quota on NSFW words last.
+
 ## 2. DNS — is it delegated?
 
 **Chosen:** DNS-over-HTTPS NS lookups, Cloudflare primary, Google fallback.
